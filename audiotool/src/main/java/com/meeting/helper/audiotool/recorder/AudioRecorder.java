@@ -95,14 +95,32 @@ public class AudioRecorder implements Recorder {
         }).start();
     }
 
+    private boolean checkBeforeExec() {
+        if (audioRecord == null) {
+            changeStatus(RecorderStatus.NULL_RECORDER);
+            return true;
+        }
+        if (status == RecorderStatus.UNINITIALIZED
+                || status == RecorderStatus.RELEASED
+                || status == RecorderStatus.NULL_RECORDER
+                || status == RecorderStatus.EXCEPTION
+                || status == RecorderStatus.OCCUPIED) {
+            return true;
+        }
+        if (audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
+            changeStatus(RecorderStatus.UNINITIALIZED);
+            return true;
+        }
+        return false;
+    }
+
     public RecorderStatus getStatus() {
         return status;
     }
 
     @Override
     public void start() {
-        if (audioRecord == null) {
-            changeStatus(RecorderStatus.NULL_RECORDER);
+        if (checkBeforeExec()) {
             return;
         }
         audioRecord.startRecording();
@@ -112,8 +130,7 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void pause() {
-        if (audioRecord == null) {
-            changeStatus(RecorderStatus.NULL_RECORDER);
+        if (checkBeforeExec()) {
             return;
         }
         audioRecord.stop();
@@ -122,8 +139,7 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void resume() {
-        if (audioRecord == null) {
-            changeStatus(RecorderStatus.NULL_RECORDER);
+        if (checkBeforeExec()) {
             return;
         }
         audioRecord.startRecording();
@@ -133,8 +149,7 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void stop() {
-        if (audioRecord == null) {
-            changeStatus(RecorderStatus.NULL_RECORDER);
+        if (checkBeforeExec()) {
             return;
         }
         audioRecord.stop();
@@ -143,8 +158,7 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void release() {
-        if (audioRecord == null) {
-            changeStatus(RecorderStatus.NULL_RECORDER);
+        if (checkBeforeExec()) {
             return;
         }
         if (status == RecorderStatus.RECORDING) {
