@@ -4,6 +4,8 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
 
+import com.meeting.helper.audiotool.Config;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;

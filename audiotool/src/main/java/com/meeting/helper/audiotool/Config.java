@@ -1,4 +1,4 @@
-package com.meeting.helper.audiotool.recorder;
+package com.meeting.helper.audiotool;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
