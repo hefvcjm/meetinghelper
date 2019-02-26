@@ -314,7 +314,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         if (player != null) {
             player.release();
         }
-        myRecognizer.release();
+        recognizerRelease();
         Log.i(TAG, "onDestory");
         super.onDestroy();
     }
@@ -390,7 +390,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         IRecogListener listener = new MessageStatusRecogListener(handler);
         // DEMO集成步骤 1.1 1.3 初始化：new一个IRecogListener示例 & new 一个 MyRecognizer 示例,并注册输出事件
         myRecognizer = new MyRecognizer(AudioActivity.this, listener);
-        if (enableOffline) {
+        if (enableOffline && myRecognizer != null) {
             // 基于DEMO集成1.4 加载离线资源步骤(离线时使用)。offlineParams是固定值，复制到您的代码里即可
             Map<String, Object> offlineParams = OfflineRecogParams.fetchOfflineParams();
             myRecognizer.loadOfflineEngine(offlineParams);
@@ -694,7 +694,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
 
         // 这里打印出params， 填写至您自己的app中，直接调用下面这行代码即可。
         // DEMO集成步骤2.2 开始识别
-        myRecognizer.start(params);
+        if (myRecognizer != null) {
+            myRecognizer.start(params);
+        }
     }
 
     /**
@@ -708,7 +710,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             return;
         }
         nowRecorder = NowRecorder.NO_RUNNING;
-        myRecognizer.stop();
+        if (myRecognizer != null) {
+            myRecognizer.stop();
+        }
     }
 
     /**
@@ -717,7 +721,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
      * 基于DEMO集成4.2 发送取消事件 取消本次识别
      */
     protected void cancel() {
-        myRecognizer.cancel();
+        if (myRecognizer != null) {
+            myRecognizer.cancel();
+        }
     }
 
     protected void handleMsg(Message msg) {
@@ -728,6 +734,17 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                 if (msg.arg2 == 1) {
                     String str = msg.obj.toString();
                     Log.d(TAG, str);
+                    if (str.contains("【asr.finish事件】识别错误, 错误码")){
+                        stop();
+                        cancel();
+                        recognizerRelease();
+                        nowRecorder = NowRecorder.SELF;
+                        isGetFileName = true;
+                        recorder = AudioRecorder.getInstance();
+                        recorder.setFilePath(tempPcmPatchPath + "/" + addAndGetPatchName(false));
+                        resumeRecording();
+                        break;
+                    }
                     if (!isGetFileName) {
                         if (str.contains("班前会")) {
                             recognizeName = "班前会";

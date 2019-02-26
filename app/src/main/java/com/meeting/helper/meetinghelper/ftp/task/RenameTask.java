@@ -2,6 +2,9 @@ package com.meeting.helper.meetinghelper.ftp.task;
 
 import com.meeting.helper.meetinghelper.ftp.FtpClient;
 import com.meeting.helper.meetinghelper.ftp.FtpTaskStatus;
+import com.meeting.helper.meetinghelper.model.FileInfo;
+
+import java.util.ArrayList;
 
 public class RenameTask extends AbstractFtpTask {
 
@@ -10,8 +13,8 @@ public class RenameTask extends AbstractFtpTask {
     private String oleFile;
     private String newFile;
 
-    public RenameTask(FtpClient client, String oleFile, String newFile) {
-        super(client);
+    public RenameTask(String oleFile, String newFile) {
+        super();
         this.oleFile = oleFile;
         this.newFile = newFile;
     }
@@ -19,7 +22,15 @@ public class RenameTask extends AbstractFtpTask {
     @Override
     protected void doTask() {
         changeStatus(FtpTaskStatus.EXECUTING, null);
-        client.rename(oleFile, newFile);
-        changeStatus(FtpTaskStatus.FINISHED, null);
+        FtpClient client = FtpClient.getInstance();
+        if (client != null) {
+            if (client.rename(oleFile, newFile)) {
+                changeStatus(FtpTaskStatus.FINISHED, null);
+            } else {
+                changeStatus(FtpTaskStatus.EXCEPTION, null);
+            }
+        } else {
+            changeStatus(FtpTaskStatus.DISCONNECTED, null);
+        }
     }
 }

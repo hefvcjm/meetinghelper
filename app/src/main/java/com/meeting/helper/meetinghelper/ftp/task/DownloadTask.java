@@ -15,8 +15,7 @@ public class DownloadTask extends AbstractFtpTask {
     private long fileSize;
     private OnFtpProcessListener listener;
 
-    public DownloadTask(FtpClient client, String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
-        super(client);
+    public DownloadTask(String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
         this.remoteFile = remoteFile;
         this.fileSize = fileSize;
         this.localFile = localFile;
@@ -32,11 +31,15 @@ public class DownloadTask extends AbstractFtpTask {
     protected void doTask() {
         Log.d(TAG, "DownloadTask doTask");
         changeStatus(FtpTaskStatus.EXECUTING, null);
-        boolean result = client.download(remoteFile, fileSize, localFile, listener);
-        if (result) {
-            changeStatus(FtpTaskStatus.FINISHED, null);
+        FtpClient client = FtpClient.getInstance();
+        if (client != null) {
+            if (client.download(remoteFile, fileSize, localFile, listener)) {
+                changeStatus(FtpTaskStatus.FINISHED, null);
+            } else {
+                changeStatus(FtpTaskStatus.EXCEPTION, null);
+            }
         } else {
-            changeStatus(FtpTaskStatus.EXCEPTION, null);
+            changeStatus(FtpTaskStatus.DISCONNECTED, null);
         }
     }
 }

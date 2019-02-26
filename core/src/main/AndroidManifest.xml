@@ -8,12 +8,12 @@
     <application>
         <meta-data
                 android:name="com.baidu.speech.APP_ID"
-                android:value="10674398"/>
+                android:value="15535187"/>
         <meta-data
                 android:name="com.baidu.speech.API_KEY"
-                android:value="a8aZUvtoQjsrsVKy7UolPtUe"/>
+                android:value="5t8TKjE3T0MognfMTCxKER0t"/>
         <meta-data
                 android:name="com.baidu.speech.SECRET_KEY"
-                android:value="d14094ef8273855e1736f6ddc7b487c0"/>
+                android:value="7A91eS1omke519gm4RbNtUk1hUyGqKnD"/>
     </application>
 </manifest>

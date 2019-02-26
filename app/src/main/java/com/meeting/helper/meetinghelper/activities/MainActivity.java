@@ -545,7 +545,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
             ivReverseList.setImageDrawable(getResources().getDrawable(R.drawable.ic_cloud));
             adapter.notifyDataSetChanged();
         } else {
-            ListFilesTask task = new ListFilesTask(FtpWorker.getInstance().getFtpClient());
+            ListFilesTask task = new ListFilesTask();
             task.setOnTaskStatusChangedListener(new OnTaskStatusChangedListener() {
                 @Override
                 public void onStatusChanged(FtpTask ftpTask, FtpTaskStatus status, Object object) {

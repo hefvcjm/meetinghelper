@@ -14,8 +14,8 @@ public class UploadTask extends AbstractFtpTask {
     private long fileSize;
     private OnFtpProcessListener listener;
 
-    public UploadTask(FtpClient client, String filePath, OnFtpProcessListener listener) {
-        super(client);
+    public UploadTask(String filePath, OnFtpProcessListener listener) {
+        super();
         this.filePath = filePath;
         this.listener = listener;
         File file = new File(filePath);
@@ -33,10 +33,15 @@ public class UploadTask extends AbstractFtpTask {
     @Override
     protected void doTask() {
         changeStatus(FtpTaskStatus.EXECUTING, null);
-        if (client.upload(filePath, listener)) {
-            changeStatus(FtpTaskStatus.FINISHED, null);
+        FtpClient client = FtpClient.getInstance();
+        if (client != null) {
+            if (client.upload(filePath, listener)) {
+                changeStatus(FtpTaskStatus.FINISHED, null);
+            } else {
+                changeStatus(FtpTaskStatus.EXCEPTION, null);
+            }
         } else {
-            changeStatus(FtpTaskStatus.EXCEPTION, null);
+            changeStatus(FtpTaskStatus.DISCONNECTED, null);
         }
     }
 }

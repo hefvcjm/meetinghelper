@@ -2,12 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="60dp"
+    android:background="@color/colorPrimary"
+    android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingLeft="10dp"
     android:paddingTop="3dp"
     android:paddingRight="10dp"
-    android:background="@color/colorPrimary"
-    android:gravity="center_vertical"
     android:paddingBottom="3dp">
 
     <ImageView
@@ -19,10 +19,10 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:paddingRight="10dp"
         android:gravity="center_vertical"
-        android:paddingLeft="10dp">
+        android:orientation="vertical"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp">
 
         <TextView
             android:id="@+id/tv_notification_title"
@@ -36,16 +36,17 @@
             android:id="@+id/pb_notification_process"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="match_parent"
-            android:layout_height="6dp"
-            android:background="#00ffffff" />
+            android:layout_height="5dp"
+            android:background="#00ffffff"
+            android:progressDrawable="@drawable/process_bar" />
 
         <TextView
             android:id="@+id/tv_notification_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="大小共198.09KB，下载已完成100.%"
-            android:textSize="10sp"
-            android:textColor="#000000" />
+            android:textColor="#000000"
+            android:textSize="10sp" />
 
     </LinearLayout>
 

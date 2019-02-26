@@ -63,6 +63,14 @@ public class FtpClient {
         return instance;
     }
 
+    public void resetClient() {
+        if (initThread != null) {
+            initThread.interrupt();
+            initThread = null;
+        }
+        init();
+    }
+
 
     private void init() {
         if (initThread == null || !initThread.isAlive()) {

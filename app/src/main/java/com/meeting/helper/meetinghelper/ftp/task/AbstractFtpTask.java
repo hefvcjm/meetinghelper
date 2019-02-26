@@ -13,7 +13,6 @@ public abstract class AbstractFtpTask implements FtpTask {
 
     private static final String TAG = "AbstractFtpTask";
 
-    protected FtpClient client;
     protected OnTaskStatusChangedListener listener;
     protected FtpTaskStatus status;
     protected Thread thread;
@@ -27,8 +26,7 @@ public abstract class AbstractFtpTask implements FtpTask {
 
     private Timer executingTimer;
 
-    public AbstractFtpTask(FtpClient client) {
-        this.client = client;
+    public AbstractFtpTask() {
         changeStatus(FtpTaskStatus.WAITING, null);
     }
 
@@ -87,7 +85,7 @@ public abstract class AbstractFtpTask implements FtpTask {
 
     @Override
     public void execute() {
-        if (client != null) {
+        if (FtpClient.getInstance() != null) {
             thread = new Thread(new Runnable() {
                 @Override
                 public void run() {

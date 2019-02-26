@@ -2,6 +2,7 @@ package com.meeting.helper.meetinghelper.ftp;
 
 import android.util.Log;
 
+import com.meeting.helper.meetinghelper.ftp.task.AbstractFtpTask;
 import com.meeting.helper.meetinghelper.ftp.task.DeleteTask;
 import com.meeting.helper.meetinghelper.ftp.task.DownloadTask;
 import com.meeting.helper.meetinghelper.ftp.task.FtpTask;
@@ -22,7 +23,6 @@ public class FtpWorker {
 
     private static final String TAG = "FtpWorker";
 
-    private FtpClient client;
     private Queue<FtpTask> taskQueue = new LinkedList<>();
     private FtpTask nowTask;
     private FtpWorkerStatus status;
@@ -35,7 +35,6 @@ public class FtpWorker {
     }
 
     private void init() {
-        client = FtpClient.getInstance();
         if (taskQueue == null) {
             taskQueue = new LinkedList<>();
         }
@@ -67,23 +66,23 @@ public class FtpWorker {
     }
 
     public boolean addDeleteTask(String remoteFile) {
-        return addTask(new DeleteTask(client, remoteFile));
+        return addTask(new DeleteTask(remoteFile));
     }
 
     public boolean addDownloadTask(String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
-        return addTask(new DownloadTask(client, remoteFile, fileSize, localFile, listener));
+        return addTask(new DownloadTask(remoteFile, fileSize, localFile, listener));
     }
 
     public boolean addListFilesTask() {
-        return addTask(new ListFilesTask(client));
+        return addTask(new ListFilesTask());
     }
 
     public boolean addRenameTask(String oldFile, String newFile) {
-        return addTask(new RenameTask(client, oldFile, newFile));
+        return addTask(new RenameTask(oldFile, newFile));
     }
 
     public boolean addUploadTask(String filePath, OnFtpProcessListener listener) {
-        return addTask(new UploadTask(client, filePath, listener));
+        return addTask(new UploadTask(filePath, listener));
     }
 
     public void clearAllTask() {
@@ -106,10 +105,6 @@ public class FtpWorker {
         return taskQueue.size();
     }
 
-    public FtpClient getFtpClient() {
-        return client;
-    }
-
     private void workerStart() {
         if (thread == null || !thread.isAlive()) {
             thread = new Thread(new Runnable() {
@@ -123,6 +118,11 @@ public class FtpWorker {
                             Log.d(TAG, "execute task: " + nowTask.getClass().getName());
                             status = FtpWorkerStatus.RUNNING;
                             nowTask.execute();
+                            if (((AbstractFtpTask) nowTask).getStatus() == FtpTaskStatus.EXCEPTION
+                                    || ((AbstractFtpTask) nowTask).getStatus() == FtpTaskStatus.DISCONNECTED) {
+                                FtpClient.getInstance().resetClient();
+                                nowTask.execute();
+                            }
                             synchronized (taskQueue) {
                                 nowTask = taskQueue.poll();
                             }

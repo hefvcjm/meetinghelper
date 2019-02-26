@@ -10,15 +10,23 @@ public class ListFilesTask extends AbstractFtpTask {
 
     private static final String TAG = "ListFilesTask";
 
-    public ListFilesTask(FtpClient client) {
-        super(client);
-        changeStatus(FtpTaskStatus.WAITING, null);
+    public ListFilesTask() {
+        super();
     }
 
     @Override
     protected void doTask() {
         changeStatus(FtpTaskStatus.EXECUTING, null);
-        ArrayList<FileInfo> fileInfo = client.getRemoteFileList();
-        changeStatus(FtpTaskStatus.FINISHED, fileInfo);
+        FtpClient client = FtpClient.getInstance();
+        if (client != null) {
+            ArrayList<FileInfo> fileInfo = client.getRemoteFileList();
+            if (fileInfo != null) {
+                changeStatus(FtpTaskStatus.FINISHED, fileInfo);
+            } else {
+                changeStatus(FtpTaskStatus.EXCEPTION, null);
+            }
+        } else {
+            changeStatus(FtpTaskStatus.DISCONNECTED, null);
+        }
     }
 }

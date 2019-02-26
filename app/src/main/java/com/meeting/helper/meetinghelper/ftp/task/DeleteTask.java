@@ -10,8 +10,8 @@ public class DeleteTask extends AbstractFtpTask {
 
     private String remoteFile;
 
-    public DeleteTask(FtpClient client, String remoteFile) {
-        super(client);
+    public DeleteTask(String remoteFile) {
+        super();
         this.remoteFile = remoteFile;
     }
 
@@ -19,7 +19,16 @@ public class DeleteTask extends AbstractFtpTask {
     @Override
     protected void doTask() {
         changeStatus(FtpTaskStatus.EXECUTING, null);
-        client.delete(remoteFile);
-        changeStatus(FtpTaskStatus.FINISHED, null);
+        FtpClient client = FtpClient.getInstance();
+        if (client != null) {
+            if (client.delete(remoteFile)) {
+                changeStatus(FtpTaskStatus.FINISHED, null);
+            } else {
+                changeStatus(FtpTaskStatus.EXCEPTION, null);
+            }
+        } else {
+            changeStatus(FtpTaskStatus.DISCONNECTED, null);
+        }
+
     }
 }
