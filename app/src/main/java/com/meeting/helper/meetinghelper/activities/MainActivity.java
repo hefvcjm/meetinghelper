@@ -610,19 +610,25 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                             @Override
                             public void run() {
                                 FileUtils.convertPcm2Wav(filePath, BASE_PATH + "/" + recognizeName, 16000, 1, 16);
-                                if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
-                                    Toast.makeText(MainActivity.this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
-                                    return;
-                                } else {
-                                    Intent intent = new Intent(MainActivity.this, FtpService.class);
-                                    ArrayList<String> recordFile = new ArrayList<>();
-                                    recordFile.add(BASE_PATH + "/" + recognizeName);
-                                    long[] size = {new File(BASE_PATH + "/" + recognizeName).length()};
-                                    intent.putStringArrayListExtra("ftp_list", recordFile);
-                                    intent.putExtra("files_size", size);
-                                    intent.putExtra("direction", 0);
-                                    startService(intent);
-                                }
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        refreshListView();
+                                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
+                                            Toast.makeText(MainActivity.this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
+                                            return;
+                                        } else {
+                                            Intent intent = new Intent(MainActivity.this, FtpService.class);
+                                            ArrayList<String> recordFile = new ArrayList<>();
+                                            recordFile.add(BASE_PATH + "/" + recognizeName);
+                                            long[] size = {new File(BASE_PATH + "/" + recognizeName).length()};
+                                            intent.putStringArrayListExtra("ftp_list", recordFile);
+                                            intent.putExtra("files_size", size);
+                                            intent.putExtra("direction", 0);
+                                            startService(intent);
+                                        }
+                                    }
+                                });
                             }
                         }).start();
                     }
@@ -712,7 +718,6 @@ public class MainActivity extends AppCompatActivity implements IStatus {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 }
 

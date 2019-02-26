@@ -119,6 +119,9 @@ public class FtpService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         ftpWorker = FtpWorker.getInstance();
+        if (intent == null) {
+            return super.onStartCommand(intent, flags, startId);
+        }
         uploadList = intent.getStringArrayListExtra("ftp_list");
         direction = intent.getIntExtra("direction", -1);
         fileSize = intent.getLongArrayExtra("files_size");

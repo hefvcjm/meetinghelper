@@ -95,7 +95,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
 
     private boolean isBaiduRecording = false;
     private boolean isGetFileName = false;
-    private String filename = "未命名";
+    private String filename = "";
     private String recognizeName = "未命名";
 
     private AudioRecorder recorder;
@@ -205,6 +205,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private void init(Bundle savedInstanceState) {
         tempPcmPatchPath = getCacheDir().getPath() + "/pcm/patch";//录音pcm文件碎片缓存目录
         tempPcmMergePath = getCacheDir().getPath() + "/pcm/merge";//录音pcm文件合并后缓存目录
+        isGetFileName = false;
         File file = new File(tempPcmPatchPath);
         if (!file.exists()) {
             file.mkdirs();
@@ -305,7 +306,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     @Override
     protected void onDestroy() {
         stopPlaying();
-        finishRecording(null);
+        if (!hasFinishRecord) {
+            finishRecording(null);
+        }
         setResult(RESULT_CANCELED);
         recorder.release();
         if (player != null) {
@@ -328,12 +331,14 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     public boolean onOptionsItemSelected(MenuItem item) {
         int i = item.getItemId();
         if (i == android.R.id.home) {
-            finishRecording(null);
+            if (!hasFinishRecord) {
+                finishRecording(null);
+            }
             stopPlaying();
             setResult(RESULT_CANCELED);
             finish();
         } else if (i == R.id.action_save) {
-            if (recorder.getStatus() != RecorderStatus.RELEASED || isBaiduRecording) {
+            if (!hasFinishRecord) {
                 finishRecording(null);
             }
             if (player != null) {
@@ -358,8 +363,12 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
 
 
     private void selectAudio() {
-        if (recorder.getStatus() != RecorderStatus.RELEASED || isBaiduRecording) {
+        if (!hasFinishRecord) {
             finishRecording(null);
+        }
+        stopTimer();
+        if (player != null) {
+            player.release();
         }
         if (filename == null) {
             setResult(RESULT_CANCELED);
@@ -437,6 +446,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     public void restartRecording(View v) {
+        hasFinishRecord = false;
         if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
             player.release();
         }
@@ -460,6 +470,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     private void resumeRecording() {
+        hasFinishRecord = false;
         Log.d(TAG, "resume recorder, now recorder is " + nowRecorder);
         if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
             player.release();
@@ -525,7 +536,10 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         tvPlay.setText("播放录音");
     }
 
+    private boolean hasFinishRecord = false;
+
     public void finishRecording(View v) {
+        hasFinishRecord = true;
         pauseRecording();
         if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
             Log.d(TAG, "finishRecording: stop player");
@@ -544,6 +558,8 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         recorder.release();
         stopTimer();
         filename = Util.mergeAndSavePcmFiles(tempPcmPatchPath, tempPcmMergePath + "/" + pcmMergeName, patchFileList);
+        isGetFileName = false;
+        nowRecorder = NowRecorder.NO_RUNNING;
         Log.d(TAG, "tempPcmPatchPath: " + tempPcmPatchPath);
         Log.d(TAG, "tempPcmMergePath: " + tempPcmMergePath + "/" + pcmMergeName);
         Log.d(TAG, "player path: " + filename);
@@ -563,7 +579,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private void startPlaying() {
         startTimer();
         try {
-            if (recorder.getStatus() == RecorderStatus.RECORDING || isBaiduRecording) {
+            if (!hasFinishRecord) {
                 finishRecording(null);
             }
             player = new AudioPlayer(new Config().setFilePath(filename));
@@ -584,7 +600,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private void stopPlaying() {
         stopTimer();
         if (player != null) {
-            player.release();
+            player.stop();
         }
         statusView.setText("停止");
         llRecord.setVisibility(View.GONE);

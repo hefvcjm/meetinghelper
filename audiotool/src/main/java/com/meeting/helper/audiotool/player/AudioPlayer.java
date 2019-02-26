@@ -108,7 +108,7 @@ public class AudioPlayer implements Player {
                                 int readCount = fileInputStream.read(data);
                                 if (readCount == AudioTrack.ERROR_INVALID_OPERATION ||
                                         readCount == AudioTrack.ERROR_BAD_VALUE) {
-                                    continue;
+                                    break;
                                 }
                                 if (readCount != 0 && readCount != -1) {
                                     audioTrack.write(data, 0, readCount);
@@ -152,29 +152,20 @@ public class AudioPlayer implements Player {
 
     @Override
     public void stop() {
-        if (checkBeforeExec()) {
-            return;
-        }
-        audioTrack.stop();
         changeStatus(PlayerStatus.STOPPED);
     }
 
     @Override
     public void release() {
-        if (checkBeforeExec()) {
-            return;
-        }
-        if (audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-            try {
-                audioTrack.stop();
-            } catch (IllegalStateException e) {
-                e.printStackTrace();
+            if (audioTrack != null
+                    && audioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
+                if (audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                    audioTrack.stop();
+                    audioTrack.release();
+                }
             }
-        }
-        audioTrack.release();
         file = null;
         data = null;
-        playThread = null;
         changeStatus(PlayerStatus.RELEASED);
     }
 
