@@ -125,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                             ivDelete.setImageDrawable(getResources().getDrawable(R.drawable.ic_delete));
                             delete.setClickable(true);
                         }
-                        if (ftpWorker.getNowTask() != null
-                                && ftpWorker.getNowTask().getClass() == DownloadTask.class) {
+                        if (FtpWorker.getInstance().getNowTask() != null
+                                && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
                             ivUpload.setImageDrawable(getResources().getDrawable(R.drawable.ic_upload_fade));
                             upload.setClickable(false);
                         }
@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                             ivDelete.setImageDrawable(getResources().getDrawable(R.drawable.ic_delete));
                             delete.setClickable(true);
                         }
-                        if (ftpWorker.getNowTask() != null && ftpWorker.getNowTask().getClass() == UploadTask.class) {
+                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == UploadTask.class) {
                             ivUpload.setImageDrawable(getResources().getDrawable(R.drawable.ic_download_fade));
                             upload.setClickable(false);
                             ivDelete.setImageDrawable(getResources().getDrawable(R.drawable.ic_delete_fade));
@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                             ivRename.setImageDrawable(getResources().getDrawable(R.drawable.ic_rename_fade));
                             rename.setClickable(false);
                         }
-                        if (ftpWorker.getNowTask() != null && ftpWorker.getNowTask().getClass() == DownloadTask.class) {
+                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
                             ivDelete.setImageDrawable(getResources().getDrawable(R.drawable.ic_delete_fade));
                             delete.setClickable(false);
                             ivRename.setImageDrawable(getResources().getDrawable(R.drawable.ic_rename_fade));
@@ -305,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                             }
                         } else {
                             for (String item : adapter.getDeleteFileNameList()) {
-                                ftpWorker.addDeleteTask(item);
+                                FtpWorker.getInstance().addDeleteTask(item);
                             }
                             refreshListView();
                             adapter.cancelSelected();
@@ -345,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                                 fileList.addAll(FileUtils.getFiles(BASE_PATH));
                                 adapter.cancelSelected();
                             } else {
-                                ftpWorker.addRenameTask(adapter.getDeleteFileNameList().get(0),
+                                FtpWorker.getInstance().addRenameTask(adapter.getDeleteFileNameList().get(0),
                                         adapter.getDeleteFileNameList().get(0).substring(0, 16) + newName + ".wav");
                                 refreshListView();
                                 adapter.cancelSelected();
@@ -545,7 +545,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
             ivReverseList.setImageDrawable(getResources().getDrawable(R.drawable.ic_cloud));
             adapter.notifyDataSetChanged();
         } else {
-            ListFilesTask task = new ListFilesTask(ftpWorker.getFtpClient());
+            ListFilesTask task = new ListFilesTask(FtpWorker.getInstance().getFtpClient());
             task.setOnTaskStatusChangedListener(new OnTaskStatusChangedListener() {
                 @Override
                 public void onStatusChanged(FtpTask ftpTask, FtpTaskStatus status, Object object) {
@@ -564,7 +564,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                     }
                 }
             });
-            ftpWorker.addTask(task);
+            FtpWorker.getInstance().addTask(task);
             fileList.clear();
             fileList.addAll(remoteFiles);
             adapter.notifyDataSetChanged();
@@ -601,7 +601,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                     final String filePath = data.getStringExtra("filePath");
                     final String recognizeName = data.getStringExtra("recognize_result");
                     if (filePath != null) {
-                        if (ftpWorker.getNowTask() != null && ftpWorker.getNowTask().getClass() == DownloadTask.class) {
+                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
                             Toast.makeText(this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
                             return;
                         }
@@ -609,18 +609,19 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-                                try {
-                                    FileUtils.rawToWave(new File(filePath), new File(BASE_PATH + "/" + recognizeName));
+                                FileUtils.convertPcm2Wav(filePath, BASE_PATH + "/" + recognizeName, 16000, 1, 16);
+                                if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
+                                    Toast.makeText(MainActivity.this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
+                                    return;
+                                } else {
                                     Intent intent = new Intent(MainActivity.this, FtpService.class);
                                     ArrayList<String> recordFile = new ArrayList<>();
-                                    recordFile.add(filePath);
+                                    recordFile.add(BASE_PATH + "/" + recognizeName);
                                     long[] size = {new File(BASE_PATH + "/" + recognizeName).length()};
                                     intent.putStringArrayListExtra("ftp_list", recordFile);
                                     intent.putExtra("files_size", size);
                                     intent.putExtra("direction", 0);
                                     startService(intent);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
                                 }
                             }
                         }).start();

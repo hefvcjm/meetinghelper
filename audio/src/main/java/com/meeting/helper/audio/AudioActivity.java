@@ -217,13 +217,15 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         }
 
+        color = R.color.colorPrimary;
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().setHomeButtonEnabled(true);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowTitleEnabled(false);
             getSupportActionBar().setElevation(0);
             getSupportActionBar().setBackgroundDrawable(
-                    new ColorDrawable(Util.getDarkerColor(color)));
+                    new ColorDrawable(getResources().getColor(color)));
             getSupportActionBar().setHomeAsUpIndicator(
                     ContextCompat.getDrawable(this, R.drawable.aar_ic_clear));
         }
@@ -244,23 +246,11 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         llRecord = findViewById(R.id.ll_record);
         llPlay = findViewById(R.id.ll_play);
 
-        if (Util.isBrightColor(color)) {
-            ContextCompat.getDrawable(this, R.drawable.aar_ic_clear)
-                    .setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
-            ContextCompat.getDrawable(this, R.drawable.aar_ic_check)
-                    .setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
-            statusView.setTextColor(Color.BLACK);
-            timerView.setTextColor(Color.BLACK);
-            restartView.setColorFilter(Color.BLACK);
-            recordView.setColorFilter(Color.BLACK);
-            playView.setColorFilter(Color.BLACK);
-        }
-
         finishView.setImageResource(R.drawable.ic_record_finished_fade);
         finishView.setClickable(false);
         restartView.setImageResource(R.drawable.ic_record_restart_fade);
         restartView.setClickable(false);
-        contentLayout.setBackgroundColor(Util.getDarkerColor(color));
+        contentLayout.setBackgroundColor(getResources().getColor(color));
         llPlay.setVisibility(View.GONE);
         llRecord.setVisibility(View.VISIBLE);
 
@@ -483,10 +473,12 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                     recorder.setFilePath(tempPcmPatchPath + "/" + addAndGetPatchName(true));
                 }
                 recorder.resume();
+                nowRecorder = NowRecorder.SELF;
             } else {
                 recognizerRelease();
                 initRecognizer();
                 start(tempPcmPatchPath + "/" + addAndGetPatchName(false));
+                nowRecorder = NowRecorder.BAIDU;
             }
         } else if (nowRecorder == NowRecorder.BAIDU) {
             recognizerRelease();
