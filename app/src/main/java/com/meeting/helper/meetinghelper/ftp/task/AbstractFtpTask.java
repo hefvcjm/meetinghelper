@@ -30,14 +30,13 @@ public abstract class AbstractFtpTask implements FtpTask {
     public AbstractFtpTask(FtpClient client) {
         this.client = client;
         changeStatus(FtpTaskStatus.WAITING, null);
-
     }
 
-    protected void changeStatus(FtpTaskStatus status, Bundle bundle) {
+    protected void changeStatus(FtpTaskStatus status, Object object) {
         if (this.status != status) {
             this.status = status;
             if (listener != null) {
-                listener.onStatusChanged(status, bundle);
+                listener.onStatusChanged(this, status, object);
             }
             Log.d(TAG, "Task status changed: " + status);
         }

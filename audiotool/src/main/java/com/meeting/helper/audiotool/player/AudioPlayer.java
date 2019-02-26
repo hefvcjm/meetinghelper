@@ -28,18 +28,22 @@ public class AudioPlayer implements Player {
     private OnPlayerStatusChangedListener listener;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public AudioPlayer() {
-        file = new File(config.getFilePath());
-        data = new byte[config.getBufferSize()];
-        audioTrack = initAudioTrack();
+    public AudioPlayer(Config config) {
+        if (config != null) {
+            this.config = config;
+        }
+        initAudioTrack();
         changeStatus(PlayerStatus.INITIALIZED);
         Log.d(TAG, "AudioPlayer init finished");
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private AudioTrack initAudioTrack() {
+    private void initAudioTrack() {
         int channelConfig = AudioFormat.CHANNEL_OUT_MONO;
-        return new AudioTrack(
+        file = new File(config.getFilePath());
+        Log.d(TAG, "file size:" + file.length());
+        data = new byte[config.getBufferSize()];
+        audioTrack = new AudioTrack(
                 new AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -64,6 +68,9 @@ public class AudioPlayer implements Player {
             Log.d(TAG, "check no passed");
             return true;
         }
+        if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_UNINITIALIZED) {
+            return true;
+        }
         return false;
     }
 
@@ -77,10 +84,11 @@ public class AudioPlayer implements Player {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void start() {
-        if (checkBeforeExec()) {
-            return;
+        if (!checkBeforeExec()) {
+            initAudioTrack();
         }
         changeStatus(PlayerStatus.PLAYING);
         if (playThread == null || !playThread.isAlive()) {
@@ -93,22 +101,9 @@ public class AudioPlayer implements Player {
                     public void run() {
                         try {
                             while (fileInputStream.available() > 0) {
-                                if (status == PlayerStatus.PAUSED) {
-                                    Thread thread = new Thread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            while (status == PlayerStatus.PAUSED) {
-                                            }
-                                        }
-                                    });
-                                    thread.start();
-                                    thread.join();
-                                }
                                 if (status == PlayerStatus.STOPPED
                                         || status == PlayerStatus.RELEASED) {
                                     break;
-                                } else {
-                                    changeStatus(PlayerStatus.PLAYING);
                                 }
                                 int readCount = fileInputStream.read(data);
                                 if (readCount == AudioTrack.ERROR_INVALID_OPERATION ||
@@ -121,9 +116,6 @@ public class AudioPlayer implements Player {
                             }
                             fileInputStream.close();
                         } catch (IOException e) {
-                            e.printStackTrace();
-                            changeStatus(PlayerStatus.EXCEPTION);
-                        } catch (InterruptedException e) {
                             e.printStackTrace();
                             changeStatus(PlayerStatus.EXCEPTION);
                         }
@@ -163,9 +155,8 @@ public class AudioPlayer implements Player {
         if (checkBeforeExec()) {
             return;
         }
+        audioTrack.stop();
         changeStatus(PlayerStatus.STOPPED);
-        audioTrack.pause();
-        audioTrack.flush();
     }
 
     @Override
@@ -173,11 +164,18 @@ public class AudioPlayer implements Player {
         if (checkBeforeExec()) {
             return;
         }
-        changeStatus(PlayerStatus.RELEASED);
+        if (audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+            try {
+                audioTrack.stop();
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+            }
+        }
         audioTrack.release();
         file = null;
         data = null;
         playThread = null;
+        changeStatus(PlayerStatus.RELEASED);
     }
 
     @Override

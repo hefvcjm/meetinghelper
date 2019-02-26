@@ -4,13 +4,13 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
 
-public class FileInfo implements Parcelable {
+public class FileInfo{
 
     private static final String TAG = "FileInfo";
 
     private String fileName;
-    private String fileSize;
-    private String fileTime;
+    private long fileSize;
+    private long fileTime;
     private String filePath;
     private boolean isSelected = false;
 
@@ -18,33 +18,12 @@ public class FileInfo implements Parcelable {
 
     }
 
-    public FileInfo(String fileName, String fileSize, String fileTime, String filePath) {
+    public FileInfo(String fileName, long fileSize, long fileTime, String filePath) {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.fileTime = fileTime;
         this.filePath = filePath;
     }
-
-    protected FileInfo(Parcel in) {
-        fileName = in.readString();
-        fileSize = in.readString();
-        fileTime = in.readString();
-        filePath = in.readString();
-        isSelected = in.readByte() != 0;
-    }
-
-    public static final Creator<FileInfo> CREATOR = new Creator<FileInfo>() {
-        @Override
-        public FileInfo createFromParcel(Parcel in) {
-            return new FileInfo(in);
-        }
-
-        @Override
-        public FileInfo[] newArray(int size) {
-            Log.d(TAG, size + "");
-            return new FileInfo[size];
-        }
-    };
 
     public String getFileName() {
         return fileName;
@@ -54,19 +33,19 @@ public class FileInfo implements Parcelable {
         this.fileName = fileName;
     }
 
-    public String getFileSize() {
+    public long getFileSize() {
         return fileSize;
     }
 
-    public void setFileSize(String fileSize) {
+    public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
     }
 
-    public String getFileTime() {
+    public long getFileTime() {
         return fileTime;
     }
 
-    public void setFileTime(String fileTime) {
+    public void setFileTime(long fileTime) {
         this.fileTime = fileTime;
     }
 
@@ -84,19 +63,5 @@ public class FileInfo implements Parcelable {
 
     public void setSelected(boolean selected) {
         isSelected = selected;
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(fileName);
-        dest.writeString(fileSize);
-        dest.writeString(fileTime);
-        dest.writeString(filePath);
-        dest.writeByte((byte) (isSelected ? 1 : 0));
     }
 }

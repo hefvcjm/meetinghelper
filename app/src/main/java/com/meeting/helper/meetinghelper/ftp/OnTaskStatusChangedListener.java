@@ -1,7 +1,7 @@
 package com.meeting.helper.meetinghelper.ftp;
 
-import android.os.Bundle;
+import com.meeting.helper.meetinghelper.ftp.task.FtpTask;
 
 public interface OnTaskStatusChangedListener {
-    void onStatusChanged(FtpTaskStatus status, Bundle bundle);
+    void onStatusChanged(FtpTask ftpTask, FtpTaskStatus status, Object object);
 }

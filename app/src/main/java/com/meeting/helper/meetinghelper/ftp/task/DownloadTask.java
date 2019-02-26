@@ -24,6 +24,10 @@ public class DownloadTask extends AbstractFtpTask {
         Log.d(TAG, "init DownloadTask");
     }
 
+    public long getFileSize() {
+        return fileSize;
+    }
+
     @Override
     protected void doTask() {
         Log.d(TAG, "DownloadTask doTask");

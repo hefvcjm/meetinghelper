@@ -15,7 +15,7 @@ public class AudioRecorder implements Recorder {
 
     private static final String TAG = "AudioRecorder";
     private Config config = new Config();
-    private AudioRecord audioRecord;
+    private static AudioRecord audioRecord;
     private RecorderStatus status;
     private File file;
     private byte[] data;
@@ -25,14 +25,7 @@ public class AudioRecorder implements Recorder {
     private OnRecorderStatusChangedListener listener;
 
     private AudioRecorder() {
-        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC
-                , config.getSampleRateInHz()
-                , config.getChannelConfig()
-                , config.getAudioFormat()
-                , config.getBufferSize());
-        file = new File(config.getFilePath());
-        data = new byte[config.getBufferSize()];
-        changeStatus(RecorderStatus.INITIALIZED);
+        initAudioRecord();
         Log.d(TAG, "AudioRecorder init finished");
     }
 
@@ -44,7 +37,21 @@ public class AudioRecorder implements Recorder {
                 }
             }
         }
+        if (audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
+            instance.initAudioRecord();
+        }
         return instance;
+    }
+
+    private void initAudioRecord() {
+        audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC
+                , config.getSampleRateInHz()
+                , config.getChannelConfig()
+                , config.getAudioFormat()
+                , config.getBufferSize());
+        file = new File(config.getFilePath());
+        data = new byte[config.getBufferSize()];
+        changeStatus(RecorderStatus.INITIALIZED);
     }
 
     private void changeStatus(RecorderStatus status) {
@@ -57,44 +64,51 @@ public class AudioRecorder implements Recorder {
         }
     }
 
+    private Thread writeFileThread;
+
     private void writeFile(final File file, final boolean isAppend) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                synchronized (file) {
-                    FileOutputStream os = null;
-                    try {
-                        os = new FileOutputStream(file, isAppend);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    if (null != os) {
-                        while (status == RecorderStatus.RECORDING) {
-                            int read = audioRecord.read(data, 0, config.getBufferSize());
-                            if (read == 0) {
-                                changeStatus(RecorderStatus.OCCUPIED);
-                                break;
-                            }
-                            // 如果读取音频数据没有出现错误，就将数据写入到文件
-                            if (AudioRecord.ERROR_INVALID_OPERATION != read) {
-                                try {
-                                    os.write(data);
-                                } catch (IOException e) {
+        if (writeFileThread == null || !writeFileThread.isAlive()) {
+            writeFileThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (file) {
+                        FileOutputStream os = null;
+                        try {
+                            os = new FileOutputStream(file, isAppend);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                        if (null != os) {
+                            while (status == RecorderStatus.RECORDING) {
+                                int read = audioRecord.read(data, 0, config.getBufferSize());
+//                                if (read == 0) {
+//                                    changeStatus(RecorderStatus.OCCUPIED);
+//                                    break;
+//                                }
+                                // 如果读取音频数据没有出现错误，就将数据写入到文件
+                                if (AudioRecord.ERROR_INVALID_OPERATION != read) {
+                                    try {
+                                        os.write(data);
+                                    } catch (IOException e) {
+                                        changeStatus(RecorderStatus.EXCEPTION);
+                                        e.printStackTrace();
+                                    }
+                                } else {
                                     changeStatus(RecorderStatus.EXCEPTION);
-                                    e.printStackTrace();
                                 }
                             }
-                        }
-                        try {
-                            Log.i(TAG, "run: close file output stream !");
-                            os.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                            try {
+                                Log.i(TAG, "run: close file output stream !");
+                                os.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
-            }
-        }).start();
+            });
+            writeFileThread.start();
+        }
     }
 
     private boolean checkBeforeExec() {
@@ -116,16 +130,43 @@ public class AudioRecorder implements Recorder {
         return false;
     }
 
+    public void setConfig(Config config) {
+        this.config = config;
+        file = new File(config.getFilePath());
+    }
+
+    public void setStatus(RecorderStatus status) {
+        changeStatus(status);
+    }
+
+    public void setFilePath(String filePath) {
+        this.config.setFilePath(filePath);
+        file = new File(filePath);
+    }
+
+    public String getFilePath() {
+        return config.getFilePath();
+    }
+
     public RecorderStatus getStatus() {
         return status;
     }
 
     @Override
     public void start() {
-        if (checkBeforeExec()) {
+        if (!checkBeforeExec()) {
+            initAudioRecord();
+        }
+        if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_STOPPED) {
+            changeStatus(RecorderStatus.OCCUPIED);
             return;
         }
         audioRecord.startRecording();
+        if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+            audioRecord.stop();
+            changeStatus(RecorderStatus.OCCUPIED);
+            return;
+        }
         changeStatus(RecorderStatus.RECORDING);
         writeFile(file, false);
     }
@@ -141,12 +182,10 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void resume() {
-        if (checkBeforeExec()) {
-            return;
+        if (!checkBeforeExec()) {
+            initAudioRecord();
         }
-        audioRecord.startRecording();
-        changeStatus(RecorderStatus.RECORDING);
-        writeFile(file, true);
+        start();
     }
 
     @Override

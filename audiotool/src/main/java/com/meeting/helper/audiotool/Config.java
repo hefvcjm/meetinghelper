@@ -14,7 +14,7 @@ public class Config {
      * 采样率，现在能够保证在所有设备上使用的采样率是44100Hz,
      * 但是其他的采样率（22050, 16000, 11025）在一些设备上也可以使用。
      */
-    private int sampleRateInHz = 44100;
+    private int sampleRateInHz = 16000;
 
     /**
      * 声道数。CHANNEL_IN_MONO and CHANNEL_IN_STEREO.
@@ -51,5 +51,10 @@ public class Config {
 
     public int getBufferSize() {
         return bufferSize;
+    }
+
+    public Config setFilePath(String filePath) {
+        this.filePath = filePath;
+        return this;
     }
 }

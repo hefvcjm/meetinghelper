@@ -15,6 +15,7 @@ import android.widget.TextView;
 
 import com.meeting.helper.meetinghelper.R;
 import com.meeting.helper.meetinghelper.model.FileInfo;
+import com.meeting.helper.meetinghelper.utils.FileUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
     private int resource;
     private List<FileInfo> list;
     private boolean isMultiSelected = false;
-    private ArrayList<String> deleteList = new ArrayList<>();
+    private ArrayList<FileInfo> deleteFileList = new ArrayList<>();
     private ViewHolder viewHolder;
     private Handler handler;
 
@@ -62,19 +63,19 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    addDeleteList(fileInfo.getFilePath());
+                    addDeleteList(fileInfo);
                     fileInfo.setSelected(true);
                 } else {
                     fileInfo.setSelected(false);
-                    deleteList.remove(fileInfo.getFilePath());
+                    deleteFileList.remove(fileInfo);
                 }
                 sendMsg();
-                Log.d(TAG, deleteList.size() + "");
+                Log.d(TAG, deleteFileList.size() + "");
             }
         });
         viewHolder.tv_name.setText(fileInfo.getFileName());
-        viewHolder.tv_size.setText(fileInfo.getFileSize());
-        viewHolder.tv_time.setText(fileInfo.getFileTime());
+        viewHolder.tv_size.setText(FileUtils.getFileSize(fileInfo.getFileSize()));
+        viewHolder.tv_time.setText(FileUtils.getFormatTime(fileInfo.getFileTime()));
         if (isMultiSelected) {
             viewHolder.cb_select.setVisibility(View.VISIBLE);
         } else {
@@ -99,12 +100,20 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
         return isMultiSelected;
     }
 
-    public ArrayList<String> getDeleteList() {
-        return deleteList;
+    public ArrayList<FileInfo> getDeleteList() {
+        return deleteFileList;
     }
 
-    public void setDeleteList(ArrayList<String> deleteList) {
-        this.deleteList = deleteList;
+    public ArrayList<String> getDeleteFileNameList() {
+        ArrayList<String> names = new ArrayList<>();
+        for (FileInfo info : deleteFileList) {
+            names.add(info.getFilePath());
+        }
+        return names;
+    }
+
+    public void setDeleteList(ArrayList<FileInfo> deleteList) {
+        deleteFileList = deleteList;
     }
 
     public List<FileInfo> getList() {
@@ -115,18 +124,18 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
         this.list = list;
     }
 
-    public void addDeleteList(String path) {
-        if (deleteList.contains(path)) {
+    public void addDeleteList(FileInfo fileInfo) {
+        if (deleteFileList.contains(fileInfo)) {
             return;
         }
-        deleteList.add(path);
+        deleteFileList.add(fileInfo);
     }
 
     public void clearDeleteList() {
         for (FileInfo info : list) {
             info.setSelected(false);
         }
-        deleteList.clear();
+        deleteFileList.clear();
     }
 
     public void cancelSelected() {
@@ -142,7 +151,7 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
     public void selectAll() {
         for (FileInfo item : list) {
             item.setSelected(true);
-            addDeleteList(item.getFilePath());
+            addDeleteList(item);
             notifyDataSetChanged();
         }
     }
@@ -158,9 +167,9 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
     public void reverseSelected() {
         for (FileInfo item : list) {
             if (item.isSelected()) {
-                deleteList.remove(item.getFilePath());
+                deleteFileList.remove(item);
             } else {
-                addDeleteList(item.getFilePath());
+                addDeleteList(item);
             }
             item.setSelected(!item.isSelected());
             notifyDataSetChanged();
@@ -176,7 +185,7 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
     private void sendMsg() {
         Message msg = new Message();
         msg.what = LISTVIEW_CHANGED;
-        msg.obj = deleteList.size();
+        msg.obj = deleteFileList.size();
         handler.sendMessage(msg);
     }
 
@@ -186,9 +195,9 @@ public class RecordListAdapter extends ArrayAdapter<FileInfo> {
             return true;
         }
         isMultiSelected = true;
-        deleteList.clear();
+        deleteFileList.clear();
         fileInfo.setSelected(true);
-        addDeleteList(fileInfo.getFilePath());
+        addDeleteList(fileInfo);
         notifyDataSetChanged();
         ((Activity) context).findViewById(R.id.title).setVisibility(View.GONE);
         ((Activity) context).findViewById(R.id.top_bar).setVisibility(View.VISIBLE);

@@ -40,21 +40,12 @@ public class FtpClient {
 
     private static FtpClient instance;
 
+    private Thread initThread;
+
     private static FTPClient client = new FTPClient();
 
     private FtpClient() {
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                initFtpClient();
-            }
-        });
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        init();
     }
 
     public static FtpClient getInstance() {
@@ -67,10 +58,27 @@ public class FtpClient {
             }
         }
         if (!client.isConnected()) {
-            Log.d(TAG, "client is not connected");
-            return null;
+            instance.init();
         }
         return instance;
+    }
+
+
+    private void init() {
+        if (initThread == null || !initThread.isAlive()) {
+            initThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    initFtpClient();
+                }
+            });
+            initThread.start();
+            try {
+                initThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void initFtpClient() {
@@ -115,8 +123,8 @@ public class FtpClient {
             });
             for (FTPFile file : remoteFiles) {
                 FileInfo info = new FileInfo();
-                info.setFileTime(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(file.getTimestamp().getTime()));
-                info.setFileSize(FileUtils.getFileSize(file.getSize()));
+                info.setFileTime(file.getTimestamp().getTime().getTime());
+                info.setFileSize(file.getSize());
                 info.setFileName(file.getName());
                 info.setFilePath(file.getName());
                 files.add(info);
@@ -183,7 +191,7 @@ public class FtpClient {
             while ((c = in.read(bytes)) != -1) {
                 out.write(bytes, 0, c);
                 precessSize += c;
-                if (precessSize > process) {
+                if (precessSize >= process) {
                     process = precessSize;
                     if (listener != null) {
                         listener.onProcess(DIRECTION_UP, filePath, totalSize, process);
@@ -232,7 +240,7 @@ public class FtpClient {
         long precessSize = 0;
         long process = 0;
         try {
-            FileOutputStream out = new FileOutputStream(localPath + remoteFile);
+            FileOutputStream out = new FileOutputStream(localPath + "/" + remoteFile);
             InputStream in = client.retrieveFileStream(new String(remoteFile.getBytes("GBK"), "iso-8859-1"));
             if (in == null) {
                 return false;
@@ -242,7 +250,7 @@ public class FtpClient {
             while ((c = in.read(bytes)) != -1) {
                 out.write(bytes, 0, c);
                 precessSize += c;
-                if (precessSize > process) {
+                if (precessSize >= process) {
                     process = precessSize;
                     if (listener != null) {
                         listener.onProcess(DIRECTION_DOWN, remoteFile, totalSize, process);

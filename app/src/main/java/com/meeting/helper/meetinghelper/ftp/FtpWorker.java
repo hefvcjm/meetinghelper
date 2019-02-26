@@ -2,7 +2,12 @@ package com.meeting.helper.meetinghelper.ftp;
 
 import android.util.Log;
 
+import com.meeting.helper.meetinghelper.ftp.task.DeleteTask;
+import com.meeting.helper.meetinghelper.ftp.task.DownloadTask;
 import com.meeting.helper.meetinghelper.ftp.task.FtpTask;
+import com.meeting.helper.meetinghelper.ftp.task.ListFilesTask;
+import com.meeting.helper.meetinghelper.ftp.task.RenameTask;
+import com.meeting.helper.meetinghelper.ftp.task.UploadTask;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -26,9 +31,11 @@ public class FtpWorker {
     private static FtpWorker instance;
 
     private FtpWorker() {
-        if (client == null) {
-            client = FtpClient.getInstance();
-        }
+        init();
+    }
+
+    private void init() {
+        client = FtpClient.getInstance();
         if (taskQueue == null) {
             taskQueue = new LinkedList<>();
         }
@@ -43,6 +50,7 @@ public class FtpWorker {
                 }
             }
         }
+        instance.init();
         return instance;
     }
 
@@ -56,6 +64,26 @@ public class FtpWorker {
         }
         workerStart();
         return flag;
+    }
+
+    public boolean addDeleteTask(String remoteFile) {
+        return addTask(new DeleteTask(client, remoteFile));
+    }
+
+    public boolean addDownloadTask(String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
+        return addTask(new DownloadTask(client, remoteFile, fileSize, localFile, listener));
+    }
+
+    public boolean addListFilesTask() {
+        return addTask(new ListFilesTask(client));
+    }
+
+    public boolean addRenameTask(String oldFile, String newFile) {
+        return addTask(new RenameTask(client, oldFile, newFile));
+    }
+
+    public boolean addUploadTask(String filePath, OnFtpProcessListener listener) {
+        return addTask(new UploadTask(client, filePath, listener));
     }
 
     public void clearAllTask() {
@@ -72,6 +100,14 @@ public class FtpWorker {
 
     public FtpTask getNowTask() {
         return nowTask;
+    }
+
+    public int countTask() {
+        return taskQueue.size();
+    }
+
+    public FtpClient getFtpClient() {
+        return client;
     }
 
     private void workerStart() {

@@ -19,6 +19,6 @@ public class ListFilesTask extends AbstractFtpTask {
     protected void doTask() {
         changeStatus(FtpTaskStatus.EXECUTING, null);
         ArrayList<FileInfo> fileInfo = client.getRemoteFileList();
-        changeStatus(FtpTaskStatus.FINISHED, null);
+        changeStatus(FtpTaskStatus.FINISHED, fileInfo);
     }
 }
