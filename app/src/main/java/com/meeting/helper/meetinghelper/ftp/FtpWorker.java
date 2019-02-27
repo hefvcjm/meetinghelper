@@ -118,11 +118,6 @@ public class FtpWorker {
                             Log.d(TAG, "execute task: " + nowTask.getClass().getName());
                             status = FtpWorkerStatus.RUNNING;
                             nowTask.execute();
-                            if (((AbstractFtpTask) nowTask).getStatus() == FtpTaskStatus.EXCEPTION
-                                    || ((AbstractFtpTask) nowTask).getStatus() == FtpTaskStatus.DISCONNECTED) {
-                                FtpClient.getInstance().resetClient();
-                                nowTask.execute();
-                            }
                             synchronized (taskQueue) {
                                 nowTask = taskQueue.poll();
                             }

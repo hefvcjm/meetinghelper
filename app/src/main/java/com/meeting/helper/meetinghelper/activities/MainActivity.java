@@ -34,6 +34,7 @@ import com.baidu.aip.asrwakeup3.core.recog.IStatus;
 import com.meeting.helper.audio.AudioActivity;
 import com.meeting.helper.meetinghelper.R;
 import com.meeting.helper.meetinghelper.adapter.RecordListAdapter;
+import com.meeting.helper.meetinghelper.ftp.FtpClient;
 import com.meeting.helper.meetinghelper.ftp.FtpTaskStatus;
 import com.meeting.helper.meetinghelper.ftp.FtpWorker;
 import com.meeting.helper.meetinghelper.ftp.OnTaskStatusChangedListener;
@@ -433,6 +434,7 @@ public class MainActivity extends AppCompatActivity implements IStatus {
     @Override
     protected void onResume() {
         ftpWorker = FtpWorker.getInstance();
+        FtpClient.getInstance();
         refreshListView();
         super.onResume();
     }
@@ -601,10 +603,10 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                     final String filePath = data.getStringExtra("filePath");
                     final String recognizeName = data.getStringExtra("recognize_result");
                     if (filePath != null) {
-                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
-                            Toast.makeText(this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+//                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
+//                            Toast.makeText(this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
+//                            return;
+//                        }
                         Log.d(TAG, "filePath: " + filePath);
                         new Thread(new Runnable() {
                             @Override
@@ -614,21 +616,27 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                                     @Override
                                     public void run() {
                                         refreshListView();
-                                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
-                                            Toast.makeText(MainActivity.this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
-                                            return;
-                                        } else {
-                                            Intent intent = new Intent(MainActivity.this, FtpService.class);
-                                            ArrayList<String> recordFile = new ArrayList<>();
-                                            recordFile.add(BASE_PATH + "/" + recognizeName);
-                                            long[] size = {new File(BASE_PATH + "/" + recognizeName).length()};
-                                            intent.putStringArrayListExtra("ftp_list", recordFile);
-                                            intent.putExtra("files_size", size);
-                                            intent.putExtra("direction", 0);
-                                            startService(intent);
-                                        }
                                     }
                                 });
+//                                runOnUiThread(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        refreshListView();
+//                                        if (FtpWorker.getInstance().getNowTask() != null && FtpWorker.getInstance().getNowTask().getClass() == DownloadTask.class) {
+//                                            Toast.makeText(MainActivity.this, "后台正忙，录音未上传", Toast.LENGTH_SHORT).show();
+//                                            return;
+//                                        } else {
+//                                            Intent intent = new Intent(MainActivity.this, FtpService.class);
+//                                            ArrayList<String> recordFile = new ArrayList<>();
+//                                            recordFile.add(BASE_PATH + "/" + recognizeName);
+//                                            long[] size = {new File(BASE_PATH + "/" + recognizeName).length()};
+//                                            intent.putStringArrayListExtra("ftp_list", recordFile);
+//                                            intent.putExtra("files_size", size);
+//                                            intent.putExtra("direction", 0);
+//                                            startService(intent);
+//                                        }
+//                                    }
+//                                });
                             }
                         }).start();
                     }
