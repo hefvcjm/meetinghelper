@@ -66,12 +66,12 @@ public class AudioPlayer implements Player {
                 || file == null
                 || data == null) {
             Log.d(TAG, "check no passed");
-            return true;
+            return false;
         }
-        if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_UNINITIALIZED) {
-            return true;
+        if (audioTrack.getState() == AudioTrack.STATE_UNINITIALIZED) {
+            return false;
         }
-        return false;
+        return true;
     }
 
     private void changeStatus(PlayerStatus status) {
@@ -100,11 +100,7 @@ public class AudioPlayer implements Player {
                     @Override
                     public void run() {
                         try {
-                            while (fileInputStream.available() > 0) {
-                                if (status == PlayerStatus.STOPPED
-                                        || status == PlayerStatus.RELEASED) {
-                                    break;
-                                }
+                            while (status == PlayerStatus.PLAYING) {
                                 int readCount = fileInputStream.read(data);
                                 if (readCount == AudioTrack.ERROR_INVALID_OPERATION ||
                                         readCount == AudioTrack.ERROR_BAD_VALUE) {
@@ -112,6 +108,8 @@ public class AudioPlayer implements Player {
                                 }
                                 if (readCount != 0 && readCount != -1) {
                                     audioTrack.write(data, 0, readCount);
+                                } else {
+                                    break;
                                 }
                             }
                             fileInputStream.close();
@@ -119,7 +117,11 @@ public class AudioPlayer implements Player {
                             e.printStackTrace();
                             changeStatus(PlayerStatus.EXCEPTION);
                         }
-                        release();
+                        audioTrack.stop();
+                        audioTrack.release();
+                        file = null;
+                        data = null;
+                        changeStatus(PlayerStatus.RELEASED);
                     }
                 });
                 playThread.start();
@@ -130,26 +132,6 @@ public class AudioPlayer implements Player {
         }
     }
 
-//    @Override
-//    public void pause() {
-//        if (checkBeforeExec()) {
-//            return;
-//        }
-//        changeStatus(PlayerStatus.PAUSED);
-//        audioTrack.stop();
-//    }
-
-//    @Override
-//    public void resume() {
-//        if (checkBeforeExec()) {
-//            return;
-//        }
-//        changeStatus(PlayerStatus.PLAYING);
-//        release();
-//        new AudioPlayer()
-//        audioTrack.play();
-//    }
-
     @Override
     public void stop() {
         changeStatus(PlayerStatus.STOPPED);
@@ -157,15 +139,6 @@ public class AudioPlayer implements Player {
 
     @Override
     public void release() {
-            if (audioTrack != null
-                    && audioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
-                if (audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-                    audioTrack.stop();
-                    audioTrack.release();
-                }
-            }
-        file = null;
-        data = null;
         changeStatus(PlayerStatus.RELEASED);
     }
 

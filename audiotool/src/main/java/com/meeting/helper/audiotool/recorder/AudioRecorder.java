@@ -19,6 +19,7 @@ public class AudioRecorder implements Recorder {
     private RecorderStatus status;
     private File file;
     private byte[] data;
+    private Thread writeFileThread;
 
     private static AudioRecorder instance;
 
@@ -37,13 +38,37 @@ public class AudioRecorder implements Recorder {
                 }
             }
         }
-        if (audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
-            instance.initAudioRecord();
-        }
         return instance;
     }
 
+    public static AudioRecorder getInstance(OnRecorderStatusChangedListener listener) {
+        instance = getInstance();
+        instance.setOnRecorderStatusChangedListener(listener);
+        return instance;
+    }
+
+    private synchronized boolean checkAudioRecorder() {
+        AudioRecord checkAudio = new AudioRecord(MediaRecorder.AudioSource.MIC
+                , config.getSampleRateInHz()
+                , config.getChannelConfig()
+                , config.getAudioFormat()
+                , config.getBufferSize());
+        if (checkAudio.getState() != AudioRecord.STATE_UNINITIALIZED) {
+            checkAudio.startRecording();
+            if (checkAudio.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+                checkAudio.stop();
+                checkAudio.release();
+                return true;
+            }
+        }
+        changeStatus(RecorderStatus.OCCUPIED);
+        return false;
+    }
+
     private void initAudioRecord() {
+        if (!checkAudioRecorder()) {
+            return;
+        }
         audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC
                 , config.getSampleRateInHz()
                 , config.getChannelConfig()
@@ -63,8 +88,6 @@ public class AudioRecorder implements Recorder {
             Log.d(TAG, "recorder status changed: " + status);
         }
     }
-
-    private Thread writeFileThread;
 
     private void writeFile(final File file, final boolean isAppend) {
         if (writeFileThread == null || !writeFileThread.isAlive()) {
@@ -111,23 +134,23 @@ public class AudioRecorder implements Recorder {
         }
     }
 
-    private boolean checkBeforeExec() {
+    private synchronized boolean checkBeforeExec() {
         if (audioRecord == null) {
             changeStatus(RecorderStatus.NULL_RECORDER);
-            return true;
+            return false;
         }
         if (status == RecorderStatus.UNINITIALIZED
                 || status == RecorderStatus.RELEASED
                 || status == RecorderStatus.NULL_RECORDER
                 || status == RecorderStatus.EXCEPTION
                 || status == RecorderStatus.OCCUPIED) {
-            return true;
+            return false;
         }
         if (audioRecord.getState() == AudioRecord.STATE_UNINITIALIZED) {
             changeStatus(RecorderStatus.UNINITIALIZED);
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     public void setConfig(Config config) {
@@ -141,7 +164,9 @@ public class AudioRecorder implements Recorder {
 
     public void setFilePath(String filePath) {
         this.config.setFilePath(filePath);
-        file = new File(filePath);
+        synchronized (file) {
+            file = new File(filePath);
+        }
     }
 
     public String getFilePath() {
@@ -154,52 +179,65 @@ public class AudioRecorder implements Recorder {
 
     @Override
     public void start() {
+        if (!checkAudioRecorder()) {
+            return;
+        }
         if (!checkBeforeExec()) {
             initAudioRecord();
-        }
-        if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_STOPPED) {
-            changeStatus(RecorderStatus.OCCUPIED);
-            return;
+            if (!checkBeforeExec()) {
+                return;
+            }
         }
         audioRecord.startRecording();
-        if (audioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
-            audioRecord.stop();
-            changeStatus(RecorderStatus.OCCUPIED);
-            return;
-        }
         changeStatus(RecorderStatus.RECORDING);
         writeFile(file, false);
     }
 
-    @Override
-    public void pause() {
-        if (checkBeforeExec()) {
+    public void start(boolean isAppend) {
+        if (!checkAudioRecorder()) {
             return;
         }
-        audioRecord.stop();
-        changeStatus(RecorderStatus.PAUSED);
+        if (!checkBeforeExec()) {
+            initAudioRecord();
+            if (!checkBeforeExec()) {
+                return;
+            }
+        }
+        audioRecord.startRecording();
+        changeStatus(RecorderStatus.RECORDING);
+        writeFile(file, isAppend);
+    }
+
+    @Override
+    public void pause() {
+        if (!checkBeforeExec()) {
+            return;
+        }
+        if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+            audioRecord.stop();
+            changeStatus(RecorderStatus.PAUSED);
+        }
     }
 
     @Override
     public void resume() {
-        if (!checkBeforeExec()) {
-            initAudioRecord();
-        }
-        start();
+        start(true);
     }
 
     @Override
     public void stop() {
-        if (checkBeforeExec()) {
+        if (!checkBeforeExec()) {
             return;
         }
-        audioRecord.stop();
-        changeStatus(RecorderStatus.STOPPED);
+        if (audioRecord.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING) {
+            audioRecord.stop();
+            changeStatus(RecorderStatus.STOPPED);
+        }
     }
 
     @Override
     public void release() {
-        if (checkBeforeExec()) {
+        if (!checkBeforeExec()) {
             return;
         }
         if (status == RecorderStatus.RECORDING) {

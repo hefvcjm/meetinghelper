@@ -9,6 +9,5 @@ public enum RecorderStatus {
     STOPPED,//已经停止录音
     RELEASED,//已经释放资源
     EXCEPTION,//出现异常
-    NEED_TO_TRY,//需要重试
     NULL_RECORDER;//AudioRecord实例为null
 }

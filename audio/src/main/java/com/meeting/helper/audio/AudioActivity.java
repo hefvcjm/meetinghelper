@@ -101,11 +101,19 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private AudioRecorder recorder;
     private AudioPlayer player;
 
+    private int reTryTimeout = 10;
+    private Timer reTryTimer;
+
     private OnRecorderStatusChangedListener onRecorderStatusChangedListener = new OnRecorderStatusChangedListener() {
         @Override
         public void onRecorderStatusChanged(RecorderStatus status) {
             switch (status) {
                 case RECORDING:
+                    if (reTryTimer != null) {
+                        reTryTimer.cancel();
+                        reTryTimer.purge();
+                        reTryTimer = null;
+                    }
                     break;
                 case PAUSED:
                     break;
@@ -113,7 +121,15 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                     break;
                 case OCCUPIED:
                     Log.d(TAG, "onRecorderStatusChanged OCCUPIED");
-                    recorder.setStatus(RecorderStatus.NEED_TO_TRY);
+                    if (reTryTimer == null) {
+                        reTryTimer = new Timer();
+                        reTryTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                recorder.setStatus(RecorderStatus.EXCEPTION);
+                            }
+                        }, reTryTimeout * 1000);
+                    }
                     recorder.resume();
                     break;
                 case RELEASED:
@@ -121,7 +137,11 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                 case INITIALIZED:
                 case NULL_RECORDER:
                 case UNINITIALIZED:
-                case NEED_TO_TRY:
+                    if (reTryTimer != null) {
+                        reTryTimer.cancel();
+                        reTryTimer.purge();
+                        reTryTimer = null;
+                    }
                     break;
                 default:
                     break;
@@ -182,15 +202,15 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
      */
     protected MyRecognizer myRecognizer;
 
+    /**
+     * 百度语音识别状态
+     */
+    protected int status = STATUS_NONE;
+
     /*
      * 本Activity中是否需要调用离线命令词功能。根据此参数，判断是否需要调用SDK的ASR_KWS_LOAD_ENGINE事件
      */
     protected boolean enableOffline = true;
-
-    /**
-     * 控制UI按钮的状态
-     */
-    protected int status;
 
     private static final int MSG_UPDATE_TIME = 0;
 
@@ -384,7 +404,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     private void initRecognizer() {
-        recognizerRelease();
+        if (myRecognizer != null) {
+            myRecognizer.release();
+        }
         // 基于DEMO集成第1.1, 1.2, 1.3 步骤 初始化EventManager类并注册自定义输出事件
         // DEMO集成步骤 1.2 新建一个回调类，识别引擎会回调这个类告知重要状态和识别结果
         IRecogListener listener = new MessageStatusRecogListener(handler);
@@ -446,8 +468,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     public void restartRecording(View v) {
+        stopTimer();
         hasFinishRecord = false;
-        if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
+        if (player != null) {
             player.release();
         }
         if (recorder.getStatus() == RecorderStatus.RECORDING) {
@@ -462,7 +485,6 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         isGetFileName = false;
         recognizeName = "未命名";
         nowRecorder = NowRecorder.NO_RUNNING;
-        stopTimer();
         patchFileList.clear();
         FileUtils.deleteFiles(tempPcmPatchPath);
         FileUtils.deleteFiles(tempPcmMergePath);
@@ -470,13 +492,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     private void resumeRecording() {
-        hasFinishRecord = false;
         Log.d(TAG, "resume recorder, now recorder is " + nowRecorder);
-        if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
+        if (player != null) {
             player.release();
-        }
-        if (timer == null) {
-            startTimer();
         }
         if (nowRecorder == NowRecorder.NO_RUNNING) {
             if (isGetFileName) {
@@ -486,33 +504,34 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                 recorder.resume();
                 nowRecorder = NowRecorder.SELF;
             } else {
-                recognizerRelease();
                 initRecognizer();
                 start(tempPcmPatchPath + "/" + addAndGetPatchName(false));
                 nowRecorder = NowRecorder.BAIDU;
             }
         } else if (nowRecorder == NowRecorder.BAIDU) {
-            recognizerRelease();
             initRecognizer();
             start(tempPcmPatchPath + "/" + addAndGetPatchName(false));
         } else if (nowRecorder == NowRecorder.SELF) {
-            recorder = AudioRecorder.getInstance();
             if (patchFileList.size() == 0) {
                 recorder.setFilePath(tempPcmPatchPath + "/" + addAndGetPatchName(true));
             }
             recorder.resume();
         }
+        if (timer == null) {
+            startTimer();
+        }
         if (nowRecorder == NowRecorder.SELF) {
             Log.d(TAG, "now recorder path: " + recorder.getFilePath());
         }
+        Log.d(TAG, "patchFileList=" + patchFileList.size());
         saveMenuItem.setVisible(false);
-        statusView.setText("录音中...");
-        llPlay.setVisibility(View.GONE);
-        llRecord.setVisibility(View.VISIBLE);
-        recordView.setImageResource(R.drawable.ic_audio_paused);
-        tvRecord.setText("暂停录音");
         playView.setImageResource(R.drawable.ic_play_start);
         tvPlay.setText("播放录音");
+        llPlay.setVisibility(View.GONE);
+        llRecord.setVisibility(View.VISIBLE);
+        statusView.setText("录音中...");
+        recordView.setImageResource(R.drawable.ic_audio_paused);
+        tvRecord.setText("暂停录音");
     }
 
     private void pauseRecording() {
@@ -540,31 +559,22 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
 
     public void finishRecording(View v) {
         hasFinishRecord = true;
-        pauseRecording();
-        if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
-            Log.d(TAG, "finishRecording: stop player");
-            player.release();
+        if (!isFinishing()) {
+            saveMenuItem.setVisible(true);
         }
-        if (recorder.getStatus() == RecorderStatus.RECORDING) {
-            Log.d(TAG, "finishRecording: stop recorder");
-            recorder.stop();
-        }
-        if (isBaiduRecording) {
-            Log.d(TAG, "finishRecording: stop baidu recorder");
+        if (nowRecorder == NowRecorder.BAIDU) {
             stop();
             cancel();
             recognizerRelease();
         }
+        if (player != null && player.getStatus() == PlayerStatus.PLAYING) {
+            Log.d(TAG, "finishRecording: stop player");
+            player.release();
+        }
+        recorder.stop();
         recorder.release();
         stopTimer();
-        filename = Util.mergeAndSavePcmFiles(tempPcmPatchPath, tempPcmMergePath + "/" + pcmMergeName, patchFileList);
-        isGetFileName = false;
         nowRecorder = NowRecorder.NO_RUNNING;
-        Log.d(TAG, "tempPcmPatchPath: " + tempPcmPatchPath);
-        Log.d(TAG, "tempPcmMergePath: " + tempPcmMergePath + "/" + pcmMergeName);
-        Log.d(TAG, "player path: " + filename);
-        patchFileList.clear();
-        FileUtils.deleteFiles(tempPcmPatchPath);
         saveMenuItem.setVisible(true);
         statusView.setText("");
         llRecord.setVisibility(View.GONE);
@@ -573,15 +583,24 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         tvRecord.setText("开始录音");
         playView.setImageResource(R.drawable.ic_play_start);
         tvPlay.setText("播放录音");
+        playView.setEnabled(false);
+        filename = Util.mergeAndSavePcmFiles(tempPcmPatchPath, tempPcmMergePath + "/" + pcmMergeName, patchFileList);
+        FileUtils.deleteFiles(tempPcmPatchPath);
+        patchFileList.clear();
+        isGetFileName = false;
+        Log.d(TAG, "tempPcmPatchPath: " + tempPcmPatchPath);
+        Log.d(TAG, "tempPcmMergePath: " + tempPcmMergePath + "/" + pcmMergeName);
+        Log.d(TAG, "player path: " + filename);
+        playView.setEnabled(true);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void startPlaying() {
-        startTimer();
         try {
             if (!hasFinishRecord) {
                 finishRecording(null);
             }
+            startTimer();
             player = new AudioPlayer(new Config().setFilePath(filename));
             player.setOnPlayerStatusChangedListener(onPlayerStatusChangedListener);
             player.start();
@@ -598,6 +617,9 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     private void stopPlaying() {
+        if (recorder.getStatus() == RecorderStatus.RECORDING || isBaiduRecording) {
+            return;
+        }
         stopTimer();
         if (player != null) {
             player.stop();
@@ -663,12 +685,6 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
      * 基于DEMO集成2.1, 2.2 设置识别参数并发送开始事件
      */
     protected void start(String outputPath) {
-        if (isGetFileName) {
-            isBaiduRecording = false;
-            return;
-        }
-        nowRecorder = NowRecorder.BAIDU;
-        isBaiduRecording = true;
         // DEMO集成步骤2.1 拼接识别参数： 此处params可以打印出来，直接写到你的代码里去，最终的json一致即可。
         final Map<String, Object> params = new HashMap<>();
         params.put("accept-audio-volume", false);
@@ -691,12 +707,12 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                 }
             }
         }, enableOffline)).checkAsr(params);
-
         // 这里打印出params， 填写至您自己的app中，直接调用下面这行代码即可。
         // DEMO集成步骤2.2 开始识别
-        if (myRecognizer != null) {
-            myRecognizer.start(params);
-        }
+        myRecognizer.start(params);
+        isBaiduRecording = true;
+        nowRecorder = NowRecorder.BAIDU;
+        status = STATUS_WAITING_READY;
     }
 
     /**
@@ -706,10 +722,8 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
      */
     protected void stop() {
         isBaiduRecording = false;
-        if (isGetFileName) {
-            return;
-        }
         nowRecorder = NowRecorder.NO_RUNNING;
+        status = STATUS_STOPPED; // 引擎识别中
         if (myRecognizer != null) {
             myRecognizer.stop();
         }
@@ -721,9 +735,12 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
      * 基于DEMO集成4.2 发送取消事件 取消本次识别
      */
     protected void cancel() {
+        isBaiduRecording = false;
+        nowRecorder = NowRecorder.NO_RUNNING;
         if (myRecognizer != null) {
             myRecognizer.cancel();
         }
+        status = STATUS_NONE; // 识别结束，回到初始状态
     }
 
     protected void handleMsg(Message msg) {
@@ -734,7 +751,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                 if (msg.arg2 == 1) {
                     String str = msg.obj.toString();
                     Log.d(TAG, str);
-                    if (str.contains("【asr.finish事件】识别错误, 错误码")){
+                    if (str.contains("【asr.finish事件】识别错误, 错误码")) {
                         stop();
                         cancel();
                         recognizerRelease();

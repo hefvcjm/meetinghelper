@@ -41,8 +41,10 @@ public class FtpClient {
     private static FtpClient instance;
 
     private Thread initThread;
+    private Thread testTread;
+    boolean testResult = false;
 
-    private static FTPClient client = new FTPClient();
+    private FTPClient client = new FTPClient();
 
     private FtpClient() {
         init();
@@ -57,8 +59,9 @@ public class FtpClient {
                 }
             }
         }
-        if (!client.isConnected()) {
-            instance.init();
+        if (!instance.isConnected()) {
+            instance.resetClient();
+            Log.d(TAG, "resetClient");
         }
         return instance;
     }
@@ -91,9 +94,17 @@ public class FtpClient {
 
     private void initFtpClient() {
         try {
-            if (client == null) {
-                client = new FTPClient();
+
+            if (client != null) {
+                client.logout();
+                client.disconnect();
+                client = null;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            client = new FTPClient();
             client.connect(hostName, port);
             if (FTPReply.isPositiveCompletion(client.getReplyCode())) {
                 if (client.login(username, password)) {
@@ -113,14 +124,33 @@ public class FtpClient {
         if (client == null) {
             return false;
         }
-        return client.isConnected();
+        try {
+            if (testTread == null || !testTread.isAlive()) {
+                testTread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            testResult = client.sendNoOp();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+            testTread.start();
+            testTread.join();
+            if (testResult) {
+                testResult = false;
+                return true;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     public ArrayList<FileInfo> getRemoteFileList() {
         ArrayList<FileInfo> files = new ArrayList<>();
-        if (!isConnected()) {
-            return files;
-        }
         try {
             List<FTPFile> remoteFiles = Arrays.asList(client.listFiles());
             Collections.sort(remoteFiles, new Comparator<FTPFile>() {
@@ -146,9 +176,6 @@ public class FtpClient {
     }
 
     public boolean rename(String oldName, String newName) {
-        if (!isConnected()) {
-            return false;
-        }
         boolean flag = false;
         try {
             flag = client.rename(new String(oldName.getBytes("GBK"), "iso-8859-1"),
@@ -160,9 +187,6 @@ public class FtpClient {
     }
 
     public boolean delete(String fileName) {
-        if (!isConnected()) {
-            return false;
-        }
         boolean flag = false;
         try {
             flag = client.deleteFile(new String(fileName.getBytes("GBK"), "iso-8859-1"));
@@ -174,9 +198,6 @@ public class FtpClient {
     }
 
     public boolean upload(String filePath, OnFtpProcessListener listener) {
-        if (!isConnected()) {
-            return false;
-        }
         File file = new File(filePath);
         if (!file.exists()) {
             return false;
@@ -231,9 +252,6 @@ public class FtpClient {
     }
 
     public boolean download(String remoteFile, long fileSize, String localPath, OnFtpProcessListener listener) {
-        if (!isConnected()) {
-            return false;
-        }
         File file = new File(localPath);
         if (file.isFile()) {
             return false;

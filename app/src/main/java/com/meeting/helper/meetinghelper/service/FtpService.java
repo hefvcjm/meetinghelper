@@ -63,7 +63,9 @@ public class FtpService extends Service {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case FINISH:
-                    updateProcessBar(1000);
+                    for (int i = 0; i < 50; i++) {
+                        updateProcessBar(1000);
+                    }
                     if (direction == 0) {
                         Toast.makeText(getApplicationContext(), "上传完成，成功" + success + "个，失败" + failure + "个", Toast.LENGTH_SHORT).show();
                     } else {
@@ -143,14 +145,14 @@ public class FtpService extends Service {
         if (direction == 0) {
             RemoteViews viewsUpload = new RemoteViews(getPackageName(), R.layout.layout_notification_process);
             viewsUpload.setProgressBar(R.id.pb_notification_process, 1000, rate, false);
-            viewsUpload.setTextViewText(R.id.tv_notification_content, "大小共" + FileUtils.getFileSize(totalSize) + "，上传已完成" + (int) (rate / 10.0) + "%");
+            viewsUpload.setTextViewText(R.id.tv_notification_content, "大小共" + FileUtils.getFileSize(totalSize) + "，上传已完成" + (int) (rate / 10.0) + "%    " + total + "/" + success + "/" + failure);
             builderUpload.setContent(viewsUpload);
             notificationUpload = builderUpload.build();
             manager.notify(UPLOAD_NOTIFICATION_ID, notificationUpload);
         } else {
             RemoteViews viewsUpload = new RemoteViews(getPackageName(), R.layout.layout_notification_process);
             viewsUpload.setProgressBar(R.id.pb_notification_process, 1000, rate, false);
-            viewsUpload.setTextViewText(R.id.tv_notification_content, "大小共" + FileUtils.getFileSize(totalSize) + "，下载已完成" + (int) (rate / 10.0) + "%");
+            viewsUpload.setTextViewText(R.id.tv_notification_content, "大小共" + FileUtils.getFileSize(totalSize) + "，下载已完成" + (int) (rate / 10.0) + "%    " + total + "/" + success + "/" + failure);
             builderDownload.setContent(viewsUpload);
             notificationDownload = builderDownload.build();
             manager.notify(DOWNLOAD_NOTIFICATION_ID, notificationDownload);
@@ -268,5 +270,11 @@ public class FtpService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        super.onDestroy();
     }
 }
