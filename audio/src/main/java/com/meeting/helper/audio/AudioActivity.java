@@ -36,6 +36,7 @@ import com.baidu.aip.asrwakeup3.core.recog.MyRecognizer;
 import com.baidu.aip.asrwakeup3.core.recog.listener.IRecogListener;
 import com.baidu.aip.asrwakeup3.core.recog.listener.MessageStatusRecogListener;
 import com.baidu.aip.asrwakeup3.uiasr.params.OfflineRecogParams;
+import com.github.promeg.pinyinhelper.Pinyin;
 import com.meeting.helper.audiotool.Config;
 import com.meeting.helper.audiotool.player.AudioPlayer;
 import com.meeting.helper.audiotool.player.OnPlayerStatusChangedListener;
@@ -92,6 +93,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private TextView tvPlay;
     private LinearLayout llRecord;
     private LinearLayout llPlay;
+    private TextView tvRecogResult;
 
     private boolean isBaiduRecording = false;
     private boolean isGetFileName = false;
@@ -266,6 +268,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
         tvPlay = findViewById(R.id.tv_audio_play);
         llRecord = findViewById(R.id.ll_record);
         llPlay = findViewById(R.id.ll_play);
+        tvRecogResult = findViewById(R.id.tv_recognized_result);
 
         finishView.setImageResource(R.drawable.ic_record_finished_fade);
         finishView.setClickable(false);
@@ -687,6 +690,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     protected void start(String outputPath) {
         // DEMO集成步骤2.1 拼接识别参数： 此处params可以打印出来，直接写到你的代码里去，最终的json一致即可。
         final Map<String, Object> params = new HashMap<>();
+        params.put("pid", 1936);
         params.put("accept-audio-volume", false);
         params.put("vad.endpoint-timeout", 0);
         params.put("accept-audio-data", true);
@@ -749,7 +753,14 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             case STATUS_FINISHED:
                 status = msg.what;
                 if (msg.arg2 == 1) {
-                    String str = msg.obj.toString();
+                    String result = msg.obj.toString();
+                    String str = result;
+                    if (result.indexOf("”") != -1 && result.lastIndexOf("”") != -1) {
+                        str = result.substring(result.indexOf("”") + 1, result.lastIndexOf("”"));
+                    }
+                    String pinyin = Pinyin.toPinyin(str, "/");
+                    tvRecogResult.setText(str);
+                    Log.d(TAG, pinyin);
                     Log.d(TAG, str);
                     if (str.contains("【asr.finish事件】识别错误, 错误码")) {
                         stop();
@@ -763,15 +774,50 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                         break;
                     }
                     if (!isGetFileName) {
-                        if (str.contains("班前会")) {
+                        if (str.contains("班前会")
+                                || pinyin.contains("BAN/QIAN/HUI")
+                                || pinyin.contains("BAN/QIANG/HUI")
+                                || pinyin.contains("BANG/QIAN/HUI")
+                                || pinyin.contains("AN/QUAN/HUI")
+                                || pinyin.contains("BAN/CHENG/HUI")
+                                || pinyin.contains("BANG/CHENG/HUI")
+//                                || pinyin.contains("BAN/QIAN")
+//                                || pinyin.contains("BAN/QIANG")
+//                                || pinyin.contains("BANG/QIAN")
+//                                || pinyin.contains("BAN/CHENG")
+//                                || pinyin.contains("BANG/CHENG")
+                                || pinyin.contains("QIANG/HUI")
+                                || pinyin.contains("QIAN/HUI")
+                                || pinyin.contains("QUAN/HUI")
+                                || pinyin.contains("CHENG/HUI")) {
                             recognizeName = "班前会";
-                        } else if (str.contains("班后会")) {
+                        } else if (str.contains("班后会")
+                                || pinyin.contains("BAN/HOU/HUI")
+                                || pinyin.contains("BAN/HAO/HUI")
+                                || pinyin.contains("BANG/HOU/HUI")
+                                || pinyin.contains("BANG/HAO/HUI")
+                                || pinyin.contains("AN/HOU/HUI")
+                                || pinyin.contains("AN/HAO/HUI")
+                                || pinyin.contains("RAN/HOU/HUI")
+                                || pinyin.contains("RAN/HAO/HUI")
+                                || pinyin.contains("BAN/HOU")
+                                || pinyin.contains("BAN/HAO")
+                                || pinyin.contains("AN/HOU")
+                                || pinyin.contains("AN/HAO")
+                                || pinyin.contains("BANG/HOU")
+                                || pinyin.contains("BANG/HAO")
+                                || pinyin.contains("HAO/HUI")
+                                || pinyin.contains("HOU/HUI")) {
                             recognizeName = "班后会";
-                        } else if (str.contains("安全学习")) {
+                        } else if (str.contains("安全学习")
+                                || pinyin.contains("AN/QUAN/XUE/XI")
+                                || pinyin.contains("AN/ZHUANG/XUE/XI")
+                                || pinyin.contains("AN/RAN/XUE/XI")) {
                             recognizeName = "安全学习";
                         } else {
                             break;
                         }
+                        Log.d(TAG, recognizeName);
                         stop();
                         cancel();
                         recognizerRelease();
@@ -792,9 +838,11 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             default:
                 break;
         }
+
     }
 
-    private void setBottomBarItemStatusSelector(final ImageView imageView, final int defaultIcon, final int pressed) {
+    private void setBottomBarItemStatusSelector(final ImageView imageView,
+                                                final int defaultIcon, final int pressed) {
         imageView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {

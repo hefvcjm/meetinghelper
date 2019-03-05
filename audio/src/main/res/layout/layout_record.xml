@@ -7,6 +7,7 @@
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/ll_timer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
@@ -33,6 +34,17 @@
             android:textSize="60sp" />
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_recognized_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/ll_timer"
+        android:layout_centerHorizontal="true"
+        android:fontFamily="sans-serif-thin"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:textSize="14sp" />
 
     <LinearLayout
         android:id="@+id/ll_record"
