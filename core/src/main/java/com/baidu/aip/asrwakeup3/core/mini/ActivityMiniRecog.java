@@ -16,7 +16,7 @@ import com.baidu.speech.EventListener;
 import com.baidu.speech.EventManager;
 import com.baidu.speech.EventManagerFactory;
 import com.baidu.speech.asr.SpeechConstant;
-import com.meeting.helper.meetinghelper.R;
+import com.meeting.helper.baidu.recogniser.R;
 
 import org.json.JSONObject;
 

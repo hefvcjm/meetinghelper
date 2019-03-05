@@ -471,6 +471,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     public void restartRecording(View v) {
+        tvRecogResult.setText("");
         stopTimer();
         hasFinishRecord = false;
         if (player != null) {
@@ -538,6 +539,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     private void pauseRecording() {
+        tvRecogResult.setText("");
         if (!isFinishing()) {
             saveMenuItem.setVisible(true);
         }
@@ -561,6 +563,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private boolean hasFinishRecord = false;
 
     public void finishRecording(View v) {
+        tvRecogResult.setText("");
         hasFinishRecord = true;
         if (!isFinishing()) {
             saveMenuItem.setVisible(true);
@@ -818,6 +821,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                             break;
                         }
                         Log.d(TAG, recognizeName);
+                        tvRecogResult.setText("识别结果：" + recognizeName);
                         stop();
                         cancel();
                         recognizerRelease();
