@@ -98,6 +98,8 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private boolean isBaiduRecording = false;
     private boolean isGetFileName = false;
     private String filename = "";
+    private String location = "";
+    private String meeting = "";
     private String recognizeName = "未命名";
 
     private AudioRecorder recorder;
@@ -471,6 +473,8 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     }
 
     public void restartRecording(View v) {
+        meeting = "";
+        location = "";
         tvRecogResult.setText("");
         stopTimer();
         hasFinishRecord = false;
@@ -563,6 +567,8 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
     private boolean hasFinishRecord = false;
 
     public void finishRecording(View v) {
+        meeting = "";
+        location = "";
         tvRecogResult.setText("");
         hasFinishRecord = true;
         if (!isFinishing()) {
@@ -777,59 +783,63 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                         break;
                     }
                     if (!isGetFileName) {
-                        if (str.contains("班前会")
-                                || pinyin.contains("BAN/QIAN/HUI")
-                                || pinyin.contains("BAN/QIANG/HUI")
-                                || pinyin.contains("BANG/QIAN/HUI")
-                                || pinyin.contains("AN/QUAN/HUI")
-                                || pinyin.contains("BAN/CHENG/HUI")
-                                || pinyin.contains("BANG/CHENG/HUI")
-//                                || pinyin.contains("BAN/QIAN")
-//                                || pinyin.contains("BAN/QIANG")
-//                                || pinyin.contains("BANG/QIAN")
-//                                || pinyin.contains("BAN/CHENG")
-//                                || pinyin.contains("BANG/CHENG")
-                                || pinyin.contains("QIANG/HUI")
-                                || pinyin.contains("QIAN/HUI")
-                                || pinyin.contains("QUAN/HUI")
-                                || pinyin.contains("CHENG/HUI")) {
-                            recognizeName = "班前会";
-                        } else if (str.contains("班后会")
-                                || pinyin.contains("BAN/HOU/HUI")
-                                || pinyin.contains("BAN/HAO/HUI")
-                                || pinyin.contains("BANG/HOU/HUI")
-                                || pinyin.contains("BANG/HAO/HUI")
-                                || pinyin.contains("AN/HOU/HUI")
-                                || pinyin.contains("AN/HAO/HUI")
-                                || pinyin.contains("RAN/HOU/HUI")
-                                || pinyin.contains("RAN/HAO/HUI")
-                                || pinyin.contains("BAN/HOU")
-                                || pinyin.contains("BAN/HAO")
-                                || pinyin.contains("AN/HOU")
-                                || pinyin.contains("AN/HAO")
-                                || pinyin.contains("BANG/HOU")
-                                || pinyin.contains("BANG/HAO")
-                                || pinyin.contains("HAO/HUI")
-                                || pinyin.contains("HOU/HUI")) {
-                            recognizeName = "班后会";
-                        } else if (str.contains("安全学习")
-                                || pinyin.contains("AN/QUAN/XUE/XI")
-                                || pinyin.contains("AN/ZHUANG/XUE/XI")
-                                || pinyin.contains("AN/RAN/XUE/XI")) {
-                            recognizeName = "安全学习";
-                        } else {
-                            break;
+                        boolean isNamed = false;
+                        for (String location_meeting : PinyinMatch.FUll.keySet()) {
+                            if (isNamed) {
+                                break;
+                            }
+                            for (String item : PinyinMatch.FUll.get(location_meeting)) {
+                                if (pinyin.contains(item)) {
+                                    recognizeName = "500kV" + location_meeting;
+                                    isNamed = true;
+                                    break;
+                                }
+                            }
                         }
-                        Log.d(TAG, recognizeName);
-                        tvRecogResult.setText("识别结果：" + recognizeName);
-                        stop();
-                        cancel();
-                        recognizerRelease();
-                        nowRecorder = NowRecorder.SELF;
-                        isGetFileName = true;
-                        recorder = AudioRecorder.getInstance();
-                        recorder.setFilePath(tempPcmPatchPath + "/" + addAndGetPatchName(false));
-                        resumeRecording();
+                        if (!isNamed && location.equals("")) {
+                            for (String l : PinyinMatch.LOCATION.keySet()) {
+                                for (String item : PinyinMatch.LOCATION.get(l)) {
+                                    if (pinyin.contains(item)) {
+                                        location = l;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!isNamed && meeting.equals("")) {
+                            for (String m : PinyinMatch.MEETING.keySet()) {
+                                if (isNamed) {
+                                    break;
+                                }
+                                for (String item : PinyinMatch.MEETING.get(m)) {
+                                    if (pinyin.contains(item)) {
+                                        meeting = m;
+                                        if (location.equals("")) {
+                                            recognizeName = meeting;
+                                        } else {
+                                            recognizeName = "500kV" + location + "变电站" + meeting;
+                                        }
+                                        isNamed = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        Log.d(TAG, isNamed + "");
+                        if (isNamed) {
+                            Log.d(TAG, recognizeName);
+                            tvRecogResult.setText("识别结果：" + recognizeName);
+                            stop();
+                            cancel();
+                            recognizerRelease();
+                            nowRecorder = NowRecorder.SELF;
+                            meeting = "";
+                            location = "";
+                            isGetFileName = true;
+                            recorder = AudioRecorder.getInstance();
+                            recorder.setFilePath(tempPcmPatchPath + "/" + addAndGetPatchName(false));
+                            resumeRecording();
+                        }
                     }
                 }
                 break;

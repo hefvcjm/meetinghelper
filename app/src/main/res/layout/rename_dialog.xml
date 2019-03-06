@@ -46,7 +46,7 @@
         android:layout_marginLeft="30dp"
         android:layout_marginTop="10dp"
         android:layout_marginRight="30dp"
-        android:maxLength="10"
+        android:maxLength="15"
         android:textColorHint="@color/font_gray"
         android:textSize="15sp" />
 
