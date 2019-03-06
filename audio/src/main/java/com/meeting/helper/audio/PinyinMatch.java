@@ -142,6 +142,7 @@ public class PinyinMatch {
      * 长寿
      */
     private static String[] changshou = {
+            "ZHANG/SHOU",
             "CHANG/SHOU",
             "CHENG/SHOU"
     };
