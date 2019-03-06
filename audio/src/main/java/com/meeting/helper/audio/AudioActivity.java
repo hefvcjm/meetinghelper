@@ -788,6 +788,11 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                             if (isNamed) {
                                 break;
                             }
+                            if (str.contains(location_meeting)) {
+                                recognizeName = "500kV" + location_meeting;
+                                isNamed = true;
+                                break;
+                            }
                             for (String item : PinyinMatch.FUll.get(location_meeting)) {
                                 if (pinyin.contains(item)) {
                                     recognizeName = "500kV" + location_meeting;
@@ -798,6 +803,10 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                         }
                         if (!isNamed && location.equals("")) {
                             for (String l : PinyinMatch.LOCATION.keySet()) {
+                                if (str.contains(l)) {
+                                    location = l;
+                                    break;
+                                }
                                 for (String item : PinyinMatch.LOCATION.get(l)) {
                                     if (pinyin.contains(item)) {
                                         location = l;
@@ -809,6 +818,16 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                         if (!isNamed && meeting.equals("")) {
                             for (String m : PinyinMatch.MEETING.keySet()) {
                                 if (isNamed) {
+                                    break;
+                                }
+                                if (str.contains(m)) {
+                                    meeting = m;
+                                    if (location.equals("")) {
+                                        recognizeName = meeting;
+                                    } else {
+                                        recognizeName = "500kV" + location + "变电站" + meeting;
+                                    }
+                                    isNamed = true;
                                     break;
                                 }
                                 for (String item : PinyinMatch.MEETING.get(m)) {
