@@ -87,7 +87,9 @@ public class PinyinMatch {
             "LONG/SENG",
             "NONG/SENG",
             "LONG/XIANG",
-            "NONG/XIANG"
+            "NONG/XIANG",
+            "CHENG/SHENG",
+            "LONG/CHENG"
     };
     /**
      * 陈家桥
@@ -126,6 +128,7 @@ public class PinyinMatch {
     private static String[] shengquan = {
             "SHENG/QUAN",
             "SHEN/QUAN",
+            "SHENG/CHUAN",
             "SHANG/CHUAN"
     };
     /**
