@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -47,9 +48,13 @@ import com.meeting.helper.meetinghelper.service.FtpService;
 import com.meeting.helper.meetinghelper.utils.FileUtils;
 import com.melnykov.fab.FloatingActionButton;
 
+import org.angmarch.views.NiceSpinner;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements IStatus {
@@ -331,23 +336,55 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                 dlg = dialog.show();
                 Button ok = dialogView.findViewById(R.id.bt_dialog_ok);
                 Button cancel = dialogView.findViewById(R.id.bt_dialog_cancel);
+                final Spinner location = dialogView.findViewById(R.id.sp_location);
+                final Spinner meeting = dialogView.findViewById(R.id.sp_meeting);
+//                final List<String> locations = new LinkedList<>(Arrays.asList("巴南", "隆盛", "陈家桥", "板桥", "圣泉", "玉屏", "长寿", "石坪", "思源", "如意", "明月山"));
+//                final List<String> meetings = new LinkedList<>(Arrays.asList("班前会", "班后会", "安全学习"));
+//                location.attachDataSource(locations);
+//                meeting.attachDataSource(meetings);
                 ok.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        EditText etRenameInput = dialogView.findViewById(R.id.et_dialog_input_rename);
-                        final String newName = etRenameInput.getText().toString().trim();
+//                        EditText etRenameInput = dialogView.findViewById(R.id.et_dialog_input_rename);
+//                        final String newName = etRenameInput.getText().toString().trim();
+                        final String selectedLocation = (String) location.getSelectedItem();
+                        final String selectedMeeting = (String) meeting.getSelectedItem();
+                        final String newName = "500kV" + selectedLocation + "变电站" + selectedMeeting;
                         if (!newName.equals("")) {
                             if (isLocalMode) {
                                 File oldFile = new File(adapter.getDeleteFileNameList().get(0));
-                                String name = BASE_PATH + "/" + oldFile.getName().substring(0, 16) + newName + ".wav";
-                                File newFile = new File(name);
-                                oldFile.renameTo(newFile);
+                                String temp_name = newName;
+                                File file = new File(BASE_PATH + "/" + oldFile.getName().substring(0, 9) + temp_name + ".wav");
+                                if (!oldFile.getName().equals(file.getName())) {
+                                    if (file.exists()) {
+                                        int i = 0;
+                                        while (true) {
+                                            i++;
+                                            file = new File(BASE_PATH + "/" + oldFile.getName().substring(0, 9) + temp_name + "(" + i + ").wav");
+                                            if (oldFile.getName().equals(file.getName())){
+                                                temp_name = temp_name + "(" + i + ")";
+                                                break;
+                                            }
+                                            if (!file.exists()) {
+                                                temp_name = temp_name + "(" + i + ")";
+                                                break;
+                                            }
+                                            if (i >= 100) {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (!oldFile.getName().equals(file.getName())){
+                                        File newFile = new File(BASE_PATH + "/" + oldFile.getName().substring(0, 9) + temp_name + ".wav");
+                                        oldFile.renameTo(newFile);
+                                    }
+                                }
                                 fileList.clear();
                                 fileList.addAll(FileUtils.getFiles(BASE_PATH));
                                 adapter.cancelSelected();
                             } else {
                                 FtpWorker.getInstance().addRenameTask(adapter.getDeleteFileNameList().get(0),
-                                        adapter.getDeleteFileNameList().get(0).substring(0, 16) + newName + ".wav");
+                                        adapter.getDeleteFileNameList().get(0).substring(0, 9) + newName + ".wav");
                                 refreshListView();
                                 adapter.cancelSelected();
                             }
@@ -611,7 +648,23 @@ public class MainActivity extends AppCompatActivity implements IStatus {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-                                FileUtils.convertPcm2Wav(filePath, BASE_PATH + "/" + recognizeName, 16000, 1, 16);
+                                String temp_name = recognizeName;
+                                File file = new File(BASE_PATH + "/" + temp_name + ".wav");
+                                if (file.exists()) {
+                                    int i = 0;
+                                    while (true) {
+                                        i++;
+                                        file = new File(BASE_PATH + "/" + temp_name + "(" + i + ").wav");
+                                        if (!file.exists()) {
+                                            temp_name = temp_name + "(" + i + ")";
+                                            break;
+                                        }
+                                        if (i >= 100) {
+                                            break;
+                                        }
+                                    }
+                                }
+                                FileUtils.convertPcm2Wav(filePath, BASE_PATH + "/" + temp_name + ".wav", 16000, 1, 16);
                                 runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {

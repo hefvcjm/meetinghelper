@@ -399,7 +399,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             setResult(RESULT_CANCELED);
             finish();
         } else {
-            recognizeName = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date(new File(filename).lastModified())) + "_" + recognizeName + ".wav";
+            recognizeName = new SimpleDateFormat("yyyyMMdd").format(new Date(new File(filename).lastModified())) + "_" + recognizeName;
             Intent intent = new Intent();
             intent.putExtra("filePath", filename);
             intent.putExtra("recognize_result", recognizeName);

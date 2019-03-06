@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="meetings">
+        <item>班前会</item>
+        <item>班后会</item>
+        <item>安全学习</item>
+    </string-array>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="locations">
+        <item>巴南</item>
+        <item>隆盛</item>
+        <item>陈家桥</item>
+        <item>板桥</item>
+        <item>圣泉</item>
+        <item>玉屏</item>
+        <item>长寿</item>
+        <item>石坪</item>
+        <item>思源</item>
+        <item>如意</item>
+        <item>明月山</item>
+    </string-array>
+</resources>
