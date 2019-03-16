@@ -7,13 +7,11 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
@@ -47,6 +45,7 @@ public class FtpService extends Service {
     private Notification notificationDownload;
     private int direction = 0;
     private FtpWorker ftpWorker;
+    private ArrayList<String> workingDirectory;
 
     private long totalSize = 0;
     private int total = 0;
@@ -168,6 +167,7 @@ public class FtpService extends Service {
         uploadList = intent.getStringArrayListExtra("ftp_list");
         direction = intent.getIntExtra("direction", -1);
         fileSize = intent.getLongArrayExtra("files_size");
+        workingDirectory = intent.getStringArrayListExtra("remote_path");
         if (direction == -1) {
             return super.onStartCommand(intent, flags, startId);
         }
@@ -188,18 +188,25 @@ public class FtpService extends Service {
 
     private void startTask() {
         if (direction == 0) {
+            int i = 0;
             for (String item : uploadList) {
-                UploadTask task = new UploadTask(item, onFtpProcessListener);
+                UploadTask task = new UploadTask(workingDirectory.get(i), item, onFtpProcessListener);
                 task.setOnTaskStatusChangedListener(onTaskStatusChangedListener);
                 ftpWorker.addTask(task);
+                i++;
             }
         } else {
             int i = 0;
             for (String item : uploadList) {
                 Log.d(TAG, item);
                 Log.d(TAG, fileSize[i] + "");
-                Log.d(TAG, BASE_PATH + "/" + item);
-                DownloadTask task = new DownloadTask(item, fileSize[i], BASE_PATH, onFtpProcessListener);
+                String localPath = workingDirectory.get(i).substring(1);
+                Log.d(TAG, BASE_PATH + "/" + localPath);
+                localPath = localPath.substring(localPath.indexOf("/") + 1).substring(localPath.indexOf("/") + 1);
+                Log.d(TAG, BASE_PATH + "/" + localPath);
+                Log.d(TAG, workingDirectory.get(i));
+                Log.d(TAG, item);
+                DownloadTask task = new DownloadTask(workingDirectory.get(i), item, fileSize[i], BASE_PATH + "/" + localPath, onFtpProcessListener);
                 task.setOnTaskStatusChangedListener(onTaskStatusChangedListener);
                 ftpWorker.addTask(task);
                 i++;

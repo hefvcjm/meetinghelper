@@ -65,25 +65,25 @@ public class FtpWorker {
         return flag;
     }
 
-    public boolean addDeleteTask(String remoteFile) {
-        return addTask(new DeleteTask(remoteFile));
+    public boolean addDeleteTask(String workingDirectory, String remoteFile) {
+        return addTask(new DeleteTask(workingDirectory, remoteFile));
     }
 
-    public boolean addDownloadTask(String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
-        return addTask(new DownloadTask(remoteFile, fileSize, localFile, listener));
+    public boolean addDownloadTask(String workingDirectory, String remoteFile, long fileSize, String localFile, OnFtpProcessListener listener) {
+        return addTask(new DownloadTask(workingDirectory, remoteFile, fileSize, localFile, listener));
     }
 
-    public boolean addListFilesTask() {
-        return addTask(new ListFilesTask());
+    public boolean addListFilesTask(String workingDirectory) {
+        return addTask(new ListFilesTask(workingDirectory));
     }
 
-    public boolean addRenameTask(String oldFile, String newFile) {
-        return addTask(new RenameTask(oldFile, newFile));
+    public boolean addRenameTask(String workingDirectory, String oldFile, String newFile) {
+        return addTask(new RenameTask(workingDirectory, oldFile, newFile));
     }
 
-    public boolean addUploadTask(String filePath, OnFtpProcessListener listener) {
-        return addTask(new UploadTask(filePath, listener));
-    }
+//    public boolean addUploadTask(String filePath, String remotePath, OnFtpProcessListener listener) {
+//        return addTask(new UploadTask(filePath, remotePath, listener));
+//    }
 
     public void clearAllTask() {
         if (taskQueue != null) {

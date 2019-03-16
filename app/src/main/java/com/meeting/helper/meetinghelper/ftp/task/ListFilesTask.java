@@ -9,9 +9,11 @@ import java.util.ArrayList;
 public class ListFilesTask extends AbstractFtpTask {
 
     private static final String TAG = "ListFilesTask";
+    private String workingDirectory;
 
-    public ListFilesTask() {
+    public ListFilesTask(String workingDirectory) {
         super();
+        this.workingDirectory = workingDirectory;
     }
 
     @Override
@@ -19,7 +21,7 @@ public class ListFilesTask extends AbstractFtpTask {
         changeStatus(FtpTaskStatus.EXECUTING, null);
         FtpClient client = FtpClient.getInstance();
         if (client != null) {
-            ArrayList<FileInfo> fileInfo = client.getRemoteFileList();
+            ArrayList<FileInfo> fileInfo = client.getRemoteFileList(this.workingDirectory);
             if (fileInfo != null) {
                 changeStatus(FtpTaskStatus.FINISHED, fileInfo);
             } else {

@@ -94,6 +94,39 @@ public class FileUtils {
             {"", "*/*"}
     };
 
+    public static ArrayList<String> getFolder(String path, String[] other) {
+        ArrayList<String> result = new ArrayList<>();
+        File file = new File(path);
+        if (file.isDirectory()) {
+            File[] folders = file.listFiles();
+            for (File item : folders) {
+                if (item.isDirectory()) {
+                    if (item.getName().matches("^[0-9]{4}年[0-9]{1,2}月$")) {
+                        result.add(item.getName());
+                        Log.d(TAG, item.getAbsolutePath());
+                    } else {
+                        if (other != null) {
+                            for (String s : other) {
+                                if (item.getName().equals(s)) {
+                                    result.add(item.getName());
+                                    Log.d(TAG, item.getAbsolutePath());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Collections.sort(result, new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        });
+        return result;
+    }
+
     public static ArrayList<FileInfo> getFiles(String path) {
         ArrayList<FileInfo> result = new ArrayList<>();
         File file = new File(path);
@@ -112,9 +145,10 @@ public class FileUtils {
             Log.d(TAG, item.getName());
             FileInfo info = new FileInfo();
             info.setFileName(item.getName());
-            info.setFilePath(new File(file, item.getName()).getPath());
+            info.setFilePath(new File(file, item.getName()).getAbsolutePath());
             info.setFileSize(item.length());
             info.setFileTime(item.lastModified());
+            info.setFileMode(item.isFile());
             result.add(info);
         }
         Collections.sort(result, new Comparator<FileInfo>() {
@@ -157,6 +191,22 @@ public class FileUtils {
             extension = "";
         }
         return extension;
+    }
+
+    public static void clearEmptyDirectory(String dir) {
+        clearEmptyDirectory(new File(dir));
+    }
+
+    public static void clearEmptyDirectory(File dir) {
+        File[] dirs = dir.listFiles();
+        for (int i = 0; i < dirs.length; i++) {
+            if (dirs[i].isDirectory()) {
+                clearEmptyDirectory(dirs[i]);
+            }
+        }
+        if (dir.isDirectory() && dirs.length == 0) {
+            dir.delete();
+        }
     }
 
     public static String getFileTime(File file) {
@@ -215,11 +265,12 @@ public class FileUtils {
 
     /**
      * PCM文件转WAV文件
-     * @param inPcmFilePath 输入PCM文件路径
+     *
+     * @param inPcmFilePath  输入PCM文件路径
      * @param outWavFilePath 输出WAV文件路径
-     * @param sampleRate 采样率，例如44100
-     * @param channels 声道数 单声道：1或双声道：2
-     * @param bitNum 采样位数，8或16
+     * @param sampleRate     采样率，例如44100
+     * @param channels       声道数 单声道：1或双声道：2
+     * @param bitNum         采样位数，8或16
      */
     public static void convertPcm2Wav(String inPcmFilePath, String outWavFilePath, int sampleRate,
                                       int channels, int bitNum) {
@@ -270,12 +321,13 @@ public class FileUtils {
 
     /**
      * 输出WAV文件
-     * @param out WAV输出文件流
+     *
+     * @param out           WAV输出文件流
      * @param totalAudioLen 整个音频PCM数据大小
-     * @param totalDataLen 整个数据大小
-     * @param sampleRate 采样率
-     * @param channels 声道数
-     * @param byteRate 采样字节byte率
+     * @param totalDataLen  整个数据大小
+     * @param sampleRate    采样率
+     * @param channels      声道数
+     * @param byteRate      采样字节byte率
      * @throws IOException
      */
     private static void writeWaveFileHeader(FileOutputStream out, long totalAudioLen,

@@ -3,7 +3,6 @@ package com.meeting.helper.meetinghelper.ftp;
 import android.util.Log;
 
 import com.meeting.helper.meetinghelper.model.FileInfo;
-import com.meeting.helper.meetinghelper.utils.FileUtils;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -17,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,8 +25,8 @@ import java.util.List;
 public class FtpClient {
 
     private static final String TAG = "FtpClient";
-    private static final String REMOTE_PATH = "/home/uftp";
-    private static final String LOCAL_DOWNLOAD_TEMP_PATH = "/storage/emulated/0/meetinghelper/temp/download/";
+    public static final String REMOTE_BASE_PATH = "/home/uftp";
+    public static final String LOCAL_DOWNLOAD_TEMP_PATH = "/storage/emulated/0/meetinghelper/temp/download/";
 
     private static final int DIRECTION_UP = 0;
     private static final int DIRECTION_DOWN = 1;
@@ -94,7 +92,6 @@ public class FtpClient {
 
     private void initFtpClient() {
         try {
-
             if (client != null) {
                 client.logout();
                 client.disconnect();
@@ -111,7 +108,7 @@ public class FtpClient {
                     client.setControlEncoding("GBK");
                     client.setFileType(FTPClient.BINARY_FILE_TYPE);//二进制文件类型
                     client.enterLocalPassiveMode();
-                    client.changeWorkingDirectory(REMOTE_PATH);
+                    client.changeWorkingDirectory(REMOTE_BASE_PATH);
                     FTPReply.isPositiveCompletion(client.sendCommand("OPTS UTF8", "ON"));
                 }
             }
@@ -150,13 +147,19 @@ public class FtpClient {
     }
 
     public ArrayList<FileInfo> getRemoteFileList() {
+        return getRemoteFileList(REMOTE_BASE_PATH);
+    }
+
+    public ArrayList<FileInfo> getRemoteFileList(String workingDirectory) {
         ArrayList<FileInfo> files = new ArrayList<>();
         try {
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
             List<FTPFile> remoteFiles = Arrays.asList(client.listFiles());
             Collections.sort(remoteFiles, new Comparator<FTPFile>() {
                 @Override
                 public int compare(FTPFile o1, FTPFile o2) {
-                    return (int) (o2.getTimestamp().getTimeInMillis() - o1.getTimestamp().getTimeInMillis());
+                    return o1.getName().compareTo(o2.getName());
                 }
             });
             for (FTPFile file : remoteFiles) {
@@ -164,7 +167,8 @@ public class FtpClient {
                 info.setFileTime(file.getTimestamp().getTime().getTime());
                 info.setFileSize(file.getSize());
                 info.setFileName(file.getName());
-                info.setFilePath(file.getName());
+                info.setFilePath(workingDirectory);
+                info.setFileMode(file.isFile());
                 files.add(info);
                 Log.d(TAG, file.getName());
             }
@@ -175,9 +179,34 @@ public class FtpClient {
         return files;
     }
 
-    public boolean rename(String oldName, String newName) {
+    public void clearEmptyDirectory(String path) {
+        try {
+            client.changeWorkingDirectory(new String(path.getBytes("GBK"), "iso-8859-1"));
+            FTPFile[] ftpFiles = client.listFiles();
+            for (FTPFile file : ftpFiles) {
+                if (file.isDirectory()) {
+                    String str = path + "/" + file.getName();
+                    Log.d(TAG, "str:" + str);
+                    clearEmptyDirectory(str);
+                }
+            }
+            if (ftpFiles.length == 0 && !path.equals(REMOTE_BASE_PATH)) {
+                Log.d(TAG, path.substring(0, path.lastIndexOf("/")));
+                Log.d(TAG, path.substring(path.lastIndexOf("/") + 1));
+                client.changeWorkingDirectory(new String(path.substring(0, path.lastIndexOf("/")).getBytes("GBK"), "iso-8859-1"));
+                client.removeDirectory(new String(path.substring(path.lastIndexOf("/") + 1).getBytes("GBK"), "iso-8859-1"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public boolean rename(String workingDirectory, String oldName, String newName) {
         boolean flag = false;
         try {
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
             flag = client.rename(new String(oldName.getBytes("GBK"), "iso-8859-1"),
                     new String(newName.getBytes("GBK"), "iso-8859-1"));
         } catch (IOException e) {
@@ -186,9 +215,11 @@ public class FtpClient {
         return flag;
     }
 
-    public boolean delete(String fileName) {
+    public boolean delete(String workingDirectory, String fileName) {
         boolean flag = false;
         try {
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
             flag = client.deleteFile(new String(fileName.getBytes("GBK"), "iso-8859-1"));
             Log.d(TAG, fileName);
         } catch (IOException e) {
@@ -197,7 +228,7 @@ public class FtpClient {
         return flag;
     }
 
-    public boolean upload(String filePath, OnFtpProcessListener listener) {
+    public boolean upload(String workingDirectory, String filePath, OnFtpProcessListener listener) {
         File file = new File(filePath);
         if (!file.exists()) {
             return false;
@@ -209,9 +240,28 @@ public class FtpClient {
         long precessSize = 0;
         long process = 0;
         try {
-            delete(file.getName());
+            String temp = REMOTE_BASE_PATH;
+            workingDirectory = workingDirectory.substring(temp.length());
+            client.changeWorkingDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"));
+            if (!client.changeWorkingDirectory(new String((REMOTE_BASE_PATH + "/" + workingDirectory).getBytes("GBK"), "iso-8859-1"))) {
+                String[] dir = workingDirectory.split("/");
+                for (String item : dir) {
+                    if (!item.equals("")) {
+                        temp = temp + "/" + item;
+                        if (!client.changeWorkingDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"))) {
+                            client.makeDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"));
+                            client.changeWorkingDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"));
+                        }
+                    } else {
+                        continue;
+                    }
+                }
+                client.changeWorkingDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"));
+            }
+            client.changeWorkingDirectory(new String(temp.getBytes("GBK"), "iso-8859-1"));
+            delete(temp, file.getName());
             InputStream in = new FileInputStream(file);
-            OutputStream out = client.appendFileStream(new String(file.getName().getBytes("GBK"), "iso-8859-1"));
+            OutputStream out = client.appendFileStream(new String((temp + "/" + file.getName()).getBytes("GBK"), "iso-8859-1"));
             if (out == null) {
                 return false;
             }
@@ -251,7 +301,7 @@ public class FtpClient {
         return true;
     }
 
-    public boolean download(String remoteFile, long fileSize, String localPath, OnFtpProcessListener listener) {
+    public boolean download(String workingDirectory, String remoteFile, long fileSize, String localPath, OnFtpProcessListener listener) {
         File file = new File(localPath);
         if (file.isFile()) {
             return false;
@@ -266,6 +316,9 @@ public class FtpClient {
         long precessSize = 0;
         long process = 0;
         try {
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
+            client.changeWorkingDirectory(new String(workingDirectory.getBytes("GBK"), "iso-8859-1"));
+            Log.d(TAG, localPath + "/" + remoteFile);
             FileOutputStream out = new FileOutputStream(localPath + "/" + remoteFile);
             InputStream in = client.retrieveFileStream(new String(remoteFile.getBytes("GBK"), "iso-8859-1"));
             if (in == null) {

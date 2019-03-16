@@ -10,11 +10,13 @@ public class RenameTask extends AbstractFtpTask {
 
     private static final String TAG = "RenameTask";
 
+    private String workingDirectory;
     private String oleFile;
     private String newFile;
 
-    public RenameTask(String oleFile, String newFile) {
+    public RenameTask(String workingDirectory, String oleFile, String newFile) {
         super();
+        this.workingDirectory = workingDirectory;
         this.oleFile = oleFile;
         this.newFile = newFile;
     }
@@ -24,7 +26,7 @@ public class RenameTask extends AbstractFtpTask {
         changeStatus(FtpTaskStatus.EXECUTING, null);
         FtpClient client = FtpClient.getInstance();
         if (client != null) {
-            if (client.rename(oleFile, newFile)) {
+            if (client.rename(workingDirectory, oleFile, newFile)) {
                 changeStatus(FtpTaskStatus.FINISHED, null);
             } else {
                 changeStatus(FtpTaskStatus.EXCEPTION, null);

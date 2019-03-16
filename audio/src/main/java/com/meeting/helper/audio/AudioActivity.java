@@ -399,7 +399,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
             setResult(RESULT_CANCELED);
             finish();
         } else {
-            recognizeName = new SimpleDateFormat("yyyyMMdd").format(new Date(new File(filename).lastModified())) + "_" + recognizeName;
+            recognizeName = new SimpleDateFormat("yyyy-MM-dd").format(new Date(new File(filename).lastModified())) + recognizeName;
             Intent intent = new Intent();
             intent.putExtra("filePath", filename);
             intent.putExtra("recognize_result", recognizeName);
@@ -789,13 +789,13 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                                 break;
                             }
                             if (str.contains(location_meeting)) {
-                                recognizeName = "500kV" + location_meeting;
+                                recognizeName = location_meeting;
                                 isNamed = true;
                                 break;
                             }
                             for (String item : PinyinMatch.FUll.get(location_meeting)) {
                                 if (pinyin.contains(item)) {
-                                    recognizeName = "500kV" + location_meeting;
+                                    recognizeName = location_meeting;
                                     isNamed = true;
                                     break;
                                 }
@@ -825,7 +825,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                                     if (location.equals("")) {
                                         recognizeName = meeting;
                                     } else {
-                                        recognizeName = "500kV" + location + "变电站" + meeting;
+                                        recognizeName = location + "变电站" + meeting;
                                     }
                                     isNamed = true;
                                     break;
@@ -836,7 +836,7 @@ public class AudioActivity extends AppCompatActivity implements IStatus {
                                         if (location.equals("")) {
                                             recognizeName = meeting;
                                         } else {
-                                            recognizeName = "500kV" + location + "变电站" + meeting;
+                                            recognizeName = location + "变电站" + meeting;
                                         }
                                         isNamed = true;
                                         break;

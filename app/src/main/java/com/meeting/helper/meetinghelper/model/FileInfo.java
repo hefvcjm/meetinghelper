@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
 
-public class FileInfo{
+public class FileInfo {
 
     private static final String TAG = "FileInfo";
 
@@ -13,6 +13,7 @@ public class FileInfo{
     private long fileTime;
     private String filePath;
     private boolean isSelected = false;
+    private boolean isFileMode = true; //true for file and false for directory
 
     public FileInfo() {
 
@@ -63,5 +64,13 @@ public class FileInfo{
 
     public void setSelected(boolean selected) {
         isSelected = selected;
+    }
+
+    public boolean isFileMode() {
+        return isFileMode;
+    }
+
+    public void setFileMode(boolean fileMode) {
+        isFileMode = fileMode;
     }
 }
